@@ -32,4 +32,4 @@ PS5.1 `.ps1`은 **소스 ASCII-only**(비-ASCII는 `[char]0xNNNN`), **출력은 
 증상이 "출력 깨짐"처럼 보여도 원인이 파싱 단계일 수 있다 → 단계별로 분리해 검증. 그리고 검증은 반드시 **실제 소비자가 쓰는 인코딩**으로 — 테스트 하니스를 산출물에 맞춰버리면 거짓 통과한다.
 
 ## 비고
-범용 코어 가치가 커 `yohan-brain` 코어로 승격 가능(현재는 yohan-cc-skills 로컬 PAT-001). Notion 패턴 사전 DB 등록은 노뚝이 담당.
+→ **`yohan-brain` 코어 `PAT-009`로 승격됨** (canonical SoT, core-ruleset.yaml pattern_refs 등재). 이 파일은 발견 레포(yohan-cc-skills) 로컬 기록 — append-only로 보존. Notion 패턴 사전 DB 등록은 노뚝이 담당.
