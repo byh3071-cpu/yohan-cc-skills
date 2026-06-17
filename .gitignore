@@ -1,0 +1,5 @@
+﻿# OS / editor cruft
+Thumbs.db
+.DS_Store
+*.bak
+settings.json.bak-*

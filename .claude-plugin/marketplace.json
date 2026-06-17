@@ -1,0 +1,19 @@
+{
+  "name": "yohan-cc-skills",
+  "owner": {
+    "name": "백요한",
+    "email": "byh3071@gmail.com"
+  },
+  "metadata": {
+    "description": "백요한 개인 Claude Code 플러그인 마켓플레이스 — 멀티 머신(데스크탑·노트북) 공통 스킬 배포용",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "statusline",
+      "source": "./plugins/statusline",
+      "description": "Windows PowerShell 상태줄 세팅 스킬: model · style · dir · ctx(1M 자동감지) · tok(cache_read 제외) + caveman 태그 머지. UTF-8 출력 / ASCII 소스로 PS5.1 인코딩 함정 회피.",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "statusline",
+  "description": "Windows PowerShell 상태줄을 ~/.claude에 배포하고 settings.json을 병합하는 셋업 스킬. ctx 1M 자동감지, tok은 cache_read 제외(실작업량), caveman 태그 머지, UTF-8 출력.",
+  "version": "0.1.0",
+  "author": {
+    "name": "백요한",
+    "email": "byh3071@gmail.com"
+  }
+}
