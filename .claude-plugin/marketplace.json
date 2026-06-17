@@ -18,7 +18,7 @@
     {
       "name": "workflow",
       "source": "./plugins/workflow",
-      "description": "반복 작업 워크플로 스킬 묶음 — dogfood-crosscheck(VHK 독푸딩 교차검증·결함 역추적), visualize(디자인 시안/HTML 시각화 보고), handoff(세션 핸드오프·멀티머신 복원).",
+      "description": "반복 작업 워크플로 스킬 묶음 — release-gate(릴리즈 전 게이트+테스트+적대적리뷰 문제0까지), dogfood-crosscheck(VHK 독푸딩 교차검증·결함 역추적), visualize(디자인 시안/HTML 시각화 보고), handoff(세션 핸드오프·멀티머신 복원).",
       "version": "0.1.0"
     }
   ]

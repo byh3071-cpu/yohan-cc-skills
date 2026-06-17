@@ -31,6 +31,10 @@ claude plugin install statusline@yohan-cc-skills
 | 플러그인 | 스킬 | 내용 |
 |---|---|---|
 | `statusline` | `/setup-statusline` | Windows PowerShell 상태줄 배포 + settings.json 병합. ctx 1M 자동감지, tok=실작업량(cache_read 제외), caveman 태그 머지, UTF-8 출력 |
+| `workflow` | `/release-gate` | 머지·publish 전 게이트(tsc→eslint→build)+테스트+적대적 리뷰를 문제 0까지, PR→머지→태그. 사람몫(2FA)만 스킵 |
+| `workflow` | `/dogfood-crosscheck` | VHK 독푸딩 → CC 독립분석 교차대조 → 도구결함 vs 앱버그 분류 → 이슈 초안 |
+| `workflow` | `/visualize` | 디자인 시안 5~6개(단일 HTML) / 결과·버전비교 HTML 보고서(두괄식·비개발자용) |
+| `workflow` | `/handoff` | 핸드오프md + 멀티머신 전달프롬프트 + 설정 동기화 |
 
 ## 구조
 ```
