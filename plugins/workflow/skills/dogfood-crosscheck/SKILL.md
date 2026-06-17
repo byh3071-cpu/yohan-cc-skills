@@ -1,0 +1,27 @@
+---
+name: dogfood-crosscheck
+description: Use when dogfooding the VHK CLI on a real project — run VHK's review/verify/fact-check, cross-check its output against an independent Claude Code review, classify each divergence as 도구 결함(VHK) vs 앱 버그, and draft VHK repo issues. Triggers - "독푸딩", "VHK로 검증/리뷰 교차확인", "도구 결함인지 앱 버그인지", "VHK에 이슈 등록".
+---
+
+# dogfood-crosscheck
+
+자작도구 VHK를 실전 프로젝트에서 쓰고(독푸딩), 그 결과가 맞는지 Claude Code 독립 분석으로 교차검증한 뒤, 어긋난 부분을 **도구 결함 vs 앱 버그**로 분류해 VHK 레포 이슈 초안까지 만든다.
+
+## 핵심 원칙
+- **교차검증 = 두 독립 출처 비교.** VHK 출력과 Claude Code 독립 분석을 *따로* 만든 뒤 대조한다. VHK 출력을 먼저 보고 거기에 끌려가지 말 것(확증편향 차단).
+- **결함 분류 전 재현.** 어긋난 건마다 최소재현으로 근본원인 추적(/debug 정신: 증상 패치 금지). 근본원인이 VHK 코드 경로면 **도구 결함**, 대상 앱 코드면 **앱 버그**.
+- **되돌리기 어려운 행위는 사람.** `gh issue create`·커밋·푸시는 초안만 만들고 사람 승인 후(4중 안전장치, PAT-003). LLM은 보고·분류 산출물만.
+
+## 절차 (todo로)
+1. **VHK 실행.** 대상에 VHK 기능(review/verify/fact-check/goal 등) 돌려 출력 캡처. 어떤 서브커맨드·버전인지 기록.
+2. **독립 분석.** 같은 코드/주장에 대해 VHK 결과를 *안 보고* Claude Code로 리뷰/사실확인 수행.
+3. **대조표.** 항목별 `VHK 판정 | CC 판정 | 일치? | 비고`. 일치=VHK 신뢰 신호, 불일치=조사 대상.
+4. **결함 분류.** 불일치/결함마다 최소재현 → `도구 결함`(VHK 오탐·누락·크래시) / `앱 버그`(대상 실제 결함) / `둘 다`. 역추적 근거 1줄.
+5. **이슈 초안.** 도구 결함은 VHK 레포(byh3071-cpu/vhk 등) 이슈 초안: 제목 / 재현 / 기대 / 실제 / 환경(Windows·PS·노드버전). **등록은 사람 승인 후.**
+6. (선택) Dev Log/PAT 후보면 메모 — 범용 결함은 TS-NNN/PAT-NNN 채번 대상.
+
+## 출력
+교차검증 대조표 + 결함 분류표 + (도구결함) 이슈 초안. 자동 등록·커밋 금지.
+
+## 중복 방지
+`vhk-auto`는 'goal 1개 자율 1바퀴'를 돈다. 이 스킬은 그와 다른 축 — **교차검증 + 결함 도구/앱 분류 + 이슈 초안**에만 한정. 자율 goal 실행이 필요하면 vhk-auto를 쓸 것.

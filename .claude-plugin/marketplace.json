@@ -14,6 +14,12 @@
       "source": "./plugins/statusline",
       "description": "Windows PowerShell 상태줄 세팅 스킬: model · style · dir · ctx(1M 자동감지) · tok(cache_read 제외) + caveman 태그 머지. UTF-8 출력 / ASCII 소스로 PS5.1 인코딩 함정 회피.",
       "version": "0.1.0"
+    },
+    {
+      "name": "workflow",
+      "source": "./plugins/workflow",
+      "description": "반복 작업 워크플로 스킬 묶음 — dogfood-crosscheck(VHK 독푸딩 교차검증·결함 역추적), visualize(디자인 시안/HTML 시각화 보고), handoff(세션 핸드오프·멀티머신 복원).",
+      "version": "0.1.0"
     }
   ]
 }
