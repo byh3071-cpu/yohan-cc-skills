@@ -18,7 +18,7 @@ description: Use PROACTIVELY when the user wants parallel/동시 작업, OR when
 - **발동 금지:** 단일 작업이고 레포가 깨끗하면 그냥 메인 트리에서 — worktree 불필요.
 
 ## 절차 (todo로)
-1. **점유 확인:** `git -C <repo> status --short`(dirty?) + `git -C <repo> worktree list`(다른 worktree?) → 충돌 위험 판단.
+1. **점유 확인 (종합 신호):** `git -C <repo> status --short`(dirty·untracked 多?) + `git -C <repo> worktree list`(다른 worktree?) + 현재 브랜치가 main/master 아님(다른 세션이 feature 작업 중 신호) → 종합 판단. ★ 애매하면 격리하는 쪽이 안전(worktree 비용은 낮고, 충돌 비용은 큼).
 2. **worktree 생성:**
    - VHK 레포(`vhk` 존재): `node dist/index.js worktree add <브랜치>` — 필수 env 자동 복사.
    - 일반 레포: `git -C <repo> worktree add "<repo경로>-<브랜치>" -b <브랜치> origin/main` (origin/main 기준 = 최신 base).
