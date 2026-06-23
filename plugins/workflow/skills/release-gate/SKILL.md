@@ -1,11 +1,16 @@
 ---
 name: release-gate
-description: Use before any hard-to-undo action — merge to main, npm publish, release, tag/version bump. Runs gate(tsc→eslint→build) + tests + adversarial code review in a loop until zero problems, then PR→merge→main 최신화→tag, skipping only human-only steps (2FA publish). Triggers - "머지/퍼블리시해도 되는지", "적대적 검증 ㄱㄱ", "릴리즈 전 확인", "문제 0까지 반복", "PR 만들고 머지", "안전한지 다시 확인".
+description: Use PROACTIVELY the moment the user heads toward a hard-to-undo action — 머지·publish·릴리즈·태그/버전업 하려는 낌새가 보이면 '머지해도 되는지' 콕 집어 묻지 않아도 먼저 "내보내기 전에 게이트(검증 루프) 돌릴까?" 제안. Runs gate(tsc→eslint→build) + tests + adversarial code review in a loop until zero problems, then PR→merge→main 최신화→tag, skipping only human-only steps (2FA publish). Triggers - 머지·publish·릴리즈·태그 직전 낌새 전반 + "머지/퍼블리시해도 되는지", "적대적 검증 ㄱㄱ", "릴리즈 전 확인", "문제 0까지 반복".
 ---
 
 # release-gate
 
 되돌리기 어려운 작업(머지·publish·릴리즈·태그) 직전, "문제 하나도 안 나올 때까지" 검증 루프를 돌리는 오케스트레이터.
+
+## 발동 (능동형)
+- **능동 발동:** 사용자가 머지·publish·릴리즈·태그를 하려는 낌새(예: "머지하자", "이제 배포", "올리자", "릴리즈 가자")가 보이면 명시 요청 없어도 먼저 잡아 **"내보내기 전에 게이트 돌릴까?"** 제안한다.
+- **항상 제안→확인 (무확인 즉시 실행 없음):** 게이트는 무거운 검증 루프라 자동으로 들이대지 말고 "돌릴까?" 한 번 묻고 ㅇㅇ면 시작. 되돌리기 어려운 작업 직전이라 신중이 기본값.
+- **발동 금지:** 중간 커밋·일반 작업엔 켜지 않는다 — '내보내기(머지·publish·릴리즈·태그)' 길목일 때만.
 
 ## 핵심 원칙
 - **되돌릴 수 없는 작업은 LLM 결정경로에서 제외 (PAT-003, 4중 안전장치).** npm publish(2FA OTP)·외부 발송·강제푸시는 사람. LLM은 검증·보고·초안까지.
