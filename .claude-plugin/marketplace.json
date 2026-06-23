@@ -10,6 +10,12 @@
   },
   "plugins": [
     {
+      "name": "yohan-core",
+      "source": "./plugins/yohan-core",
+      "description": "백요한 1인 AI기업 코어 — 글쓰기·교차검증·비용가드·릴리즈 스킬 + explorer/planner/critic/shipper 서브에이전트 + 보안/포맷/세션로그 훅 + yohan-mcp(Notion) 번들. 모든 레포 공통 두뇌.",
+      "version": "0.1.0"
+    },
+    {
       "name": "statusline",
       "source": "./plugins/statusline",
       "description": "Windows PowerShell 상태줄 세팅 스킬: model · style · dir · ctx(1M 자동감지) · tok(cache_read 제외) + caveman 태그 머지. UTF-8 출력 / ASCII 소스로 PS5.1 인코딩 함정 회피.",
