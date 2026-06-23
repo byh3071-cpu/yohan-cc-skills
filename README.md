@@ -36,6 +36,7 @@ claude plugin install statusline@yohan-cc-skills
 | `workflow` | `/visualize` | 디자인 시안 5~6개(단일 HTML) / 결과·버전비교 HTML 보고서(두괄식·비개발자용) |
 | `workflow` | `/handoff` | 핸드오프md + 멀티머신 전달프롬프트 + 설정 동기화 |
 | `workflow` | `/new-repo` | 새 GitHub 레포 생성 + 그룹 자동분류 + repos.json 등록·push → 멀티PC 같은 폴더 자동 정리 |
+| `workflow` | `/parallel` | 병렬·동시 작업 시 worktree 자동 격리(생성·작업·정리) → 충돌 0. worktree 몰라도 됨 |
 
 ## 구조
 ```
