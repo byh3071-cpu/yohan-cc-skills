@@ -1,6 +1,6 @@
 ---
 name: new-repo
-description: Use when creating a new GitHub repo or starting a new project / 새 레포·프로젝트 만들 때 — 목적 보고 그룹 자동분류 후 add-repo.ps1 로 GitHub 생성·그룹폴더 클론·repos.json 등록·push 를 한 번에. 멀티PC(집↔노트북) 자동 전파. Triggers - "레포 만들어줘", "새 레포", "새 프로젝트 시작", "프로젝트 새로 만들어", "new repo", "리포지토리 생성".
+description: Use PROACTIVELY whenever the user starts or even just mentions a NEW project·app·tool·product — '레포 만들어줘' 라고 콕 집지 않아도 된다 (예: "X 만들어보자", "새 앱 하나", "OO 짜보고 싶어", "프로젝트 시작하자", "이거 따로 빼서 만들자"). 새 프로젝트 낌새를 감지하면 그룹·이름을 제시해 1회 확인 후(사용자가 '바로/확인없이/그냥 만들어' 하면 즉시) add-repo.ps1 -Create 로 GitHub 생성·그룹폴더 클론·repos.json push, 멀티PC 자동 전파. Triggers - 새 프로젝트·앱·도구·제품 시작 낌새 전반 + "레포 만들어줘"·"새 레포"·"리포지토리 생성".
 ---
 
 # new-repo
@@ -11,6 +11,11 @@ description: Use when creating a new GitHub repo or starting a new project / 새
 - **GitHub = 단일 진실원(SoT).** 로컬에만 만들면 다른 PC가 영영 모름 → 반드시 GitHub 생성(`-Create`).
 - **`add-repo.ps1` = 단일 진입점.** GitHub 생성 + 그룹 폴더 클론 + `repos.json` 등록·push 를 한 방에.
 - **`repos.json` 그룹 = 멀티PC 폴더 일치의 열쇠.** 여기 그룹이 적히면, 다른 PC의 자동 풀(boot-auto-pull-setup 자동클론)이 그룹을 읽어 **같은 그룹 폴더**에 받는다.
+
+## 발동 & 확인 (능동형)
+- **능동 발동:** 사용자가 새 프로젝트·앱·도구·제품을 **시작하거나 언급만 해도**(명시 트리거 없이) 이 스킬을 켠다 — "아 이거 새 레포네" 하고 먼저 잡는다. 단 기존 레포 안에서의 일반 작업·기능 추가는 발동 금지(새 독립 산출물일 때만).
+- **기본 = 1회 확인:** 그룹·이름을 정해 제시 — "`<그룹>` 그룹에 `<이름>`으로 레포 만들까?" → 사용자가 ㅇㅇ면 실행.
+- **무확인 모드:** 사용자가 "바로/확인없이/그냥 만들어" 신호를 주면 확인 생략하고 즉시 실행. **단 안전장치** — 그룹이나 이름이 애매하면 무확인이어도 그것만은 1번 물어 오분류·오생성을 막는다.
 
 ## 절차 (todo로)
 1. **레포명·목적 확인.** 이름은 소문자-하이픈(kebab-case). 목적(뭐 하는 레포인지)을 파악.
