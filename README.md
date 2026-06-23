@@ -35,6 +35,7 @@ claude plugin install statusline@yohan-cc-skills
 | `workflow` | `/dogfood-crosscheck` | VHK 독푸딩 → CC 독립분석 교차대조 → 도구결함 vs 앱버그 분류 → 이슈 초안 |
 | `workflow` | `/visualize` | 디자인 시안 5~6개(단일 HTML) / 결과·버전비교 HTML 보고서(두괄식·비개발자용) |
 | `workflow` | `/handoff` | 핸드오프md + 멀티머신 전달프롬프트 + 설정 동기화 |
+| `workflow` | `/new-repo` | 새 GitHub 레포 생성 + 그룹 자동분류 + repos.json 등록·push → 멀티PC 같은 폴더 자동 정리 |
 
 ## 구조
 ```
