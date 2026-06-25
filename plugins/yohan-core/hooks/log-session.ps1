@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 # log-session.ps1 — Stop 훅: 세션 결과를 Notion EXECUTION LOG에 기록(SoT Key로 멱등)
 $ErrorActionPreference = 'Continue'
 $token = $env:NOTION_TOKEN

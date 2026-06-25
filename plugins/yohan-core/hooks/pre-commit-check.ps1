@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 # pre-commit-check.ps1 — git commit 직전 정적 점검 (비밀/대용량/토큰)
 $ErrorActionPreference = 'Continue'
 $staged = (git diff --cached --name-only 2>$null)

@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 # context-hint.ps1 — SessionStart 훅: 현재 레포 컨텍스트를 모델에 주입
 $ErrorActionPreference = 'Continue'
 $cwd = (Get-Location).Path

@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 # auto-format.ps1 — PostToolUse(Write|Edit) 훅: 저장된 파일 자동 포맷(있을 때만)
 $ErrorActionPreference = 'Continue'
 try { $evt = ([Console]::In.ReadToEnd() | ConvertFrom-Json) } catch { exit 0 }

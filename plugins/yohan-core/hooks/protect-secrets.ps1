@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 # protect-secrets.ps1 — PreToolUse 가드: 민감 파일 접근/유출 차단
 $ErrorActionPreference = 'Stop'
 try {

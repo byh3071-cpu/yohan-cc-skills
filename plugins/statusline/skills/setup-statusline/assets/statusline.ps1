@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'SilentlyContinue'
+﻿$ErrorActionPreference = 'SilentlyContinue'
 
 # --- Read status data from stdin (robust: open the redirected handle directly) ---
 $raw = ''

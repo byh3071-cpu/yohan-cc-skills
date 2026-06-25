@@ -1,0 +1,7 @@
+# Windows PowerShell 5.1은 BOM이 없으면 .ps1을 시스템 ANSI(CP949)로 읽어
+# 한글이 깨진다. 한글 포함 스크립트가 파서 에러를 내지 않도록 UTF-8 BOM 강제.
+root = true
+
+[*.ps1]
+charset = utf-8-bom
+end_of_line = crlf

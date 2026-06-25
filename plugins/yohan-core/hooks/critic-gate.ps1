@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 # critic-gate.ps1 — git push 직전 게이트: critic 통과 마커 확인
 $ErrorActionPreference = 'Continue'
 $gate = Join-Path (Get-Location).Path '.claude/.gate-pass'
