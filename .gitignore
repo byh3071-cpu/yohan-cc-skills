@@ -3,3 +3,14 @@ Thumbs.db
 .DS_Store
 *.bak
 settings.json.bak-*
+
+# Cursor MCP — 로컬 경로·시크릿 (example 만 커밋, E5-04)
+.cursor/mcp.json
+!.cursor/mcp.json.example
+!.cursor/rules/
+!.cursor/rules/ecosystem.mdc
+
+# VHK runtime (tier S seed)
+.vhk/memory.json
+.vhk/refs.json
+.vhk/HARD_STOP
