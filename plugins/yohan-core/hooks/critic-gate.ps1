@@ -1,6 +1,16 @@
 ﻿#requires -Version 5.1
 # critic-gate.ps1 — git push 직전 게이트: critic 통과 마커 확인
 $ErrorActionPreference = 'Continue'
+
+# stdin의 tool_input.command를 읽어 git push가 아니면 즉시 통과(읽기 전용·일반 명령은 자동 승인).
+# hooks.json의 if 매처가 적용 안 되는 환경 대비 — 스크립트가 직접 명령어를 보고 push에만 게이트를 건다.
+$cmd = ''
+try {
+  $raw = [Console]::In.ReadToEnd()
+  if ($raw) { $cmd = "$(($raw | ConvertFrom-Json).tool_input.command)" }
+} catch { $cmd = '' }
+if ($cmd -notmatch '(?i)\bgit\b(\s+-\S+(\s+\S+)?)*\s+push\b') { exit 0 }
+
 $gate = Join-Path (Get-Location).Path '.claude/.gate-pass'
 $ok = $false
 if (Test-Path $gate) {
