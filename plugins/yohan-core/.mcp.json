@@ -2,7 +2,7 @@
   "mcpServers": {
     "yohan": {
       "command": "python",
-      "args": ["C:/Users/Public/dev/yohan-ecosystem/yohan-mcp/server.py"]
+      "args": ["${YOHAN_ECOSYSTEM_ROOT:-C:/Users/Public/dev/yohan-ecosystem}/yohan-mcp/server.py"]
     }
   }
 }
