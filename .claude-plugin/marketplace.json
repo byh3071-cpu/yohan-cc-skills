@@ -26,6 +26,12 @@
       "source": "./plugins/workflow",
       "description": "반복 작업 워크플로 스킬 묶음 — release-gate(릴리즈 전 게이트+테스트+적대적리뷰 문제0까지), dogfood-crosscheck(VHK 독푸딩 교차검증·결함 역추적), visualize(디자인 시안/HTML 시각화 보고), handoff(세션 핸드오프·멀티머신 복원).",
       "version": "0.1.0"
+    },
+    {
+      "name": "critical-thinking",
+      "source": "./plugins/critical-thinking",
+      "description": "비판적 사고 모드 — 소크라테스식 질문·CoVe 자가검증·steelman-attack으로 아첨·할루시네이션·비현실적 답변 억제. /critical lite|full|ultra|auto|off 토글 + critical-thinking 스킬 + skeptic 서브에이전트. 대화·추론 시점 담당(코드용 critic과 분리). 기본 OFF 옵트인.",
+      "version": "0.1.0"
     }
   ]
 }
