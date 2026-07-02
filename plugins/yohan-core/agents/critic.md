@@ -1,7 +1,7 @@
 ---
 name: critic
 description: 계획/구현을 적대적으로 검증할 때 위임. 반례·엣지케이스·보안·회귀를 역추적. 통과 기준 충족까지 문제 제기.
-model: sonnet
+model: opus
 tools: Read, Grep, Glob, Bash
 memory: project
 skills: cross-check
