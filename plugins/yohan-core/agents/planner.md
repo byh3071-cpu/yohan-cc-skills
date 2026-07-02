@@ -1,7 +1,7 @@
 ---
 name: planner
 description: 수집된 사실을 바탕으로 단계별 실행계획을 세울 때 위임. 작은 단위·검증 가능한 단계로 분해. 코드 작성 전 설계.
-model: sonnet
+model: opus
 tools: Read, Grep, Glob
 ---
 

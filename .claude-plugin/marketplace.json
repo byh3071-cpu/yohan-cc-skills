@@ -13,7 +13,7 @@
       "name": "yohan-core",
       "source": "./plugins/yohan-core",
       "description": "백요한 1인 AI기업 코어 — 글쓰기·교차검증·비용가드·릴리즈 스킬 + explorer/planner/critic/shipper 서브에이전트 + 보안/포맷/세션로그 훅 + yohan-mcp(Notion) 번들. 모든 레포 공통 두뇌.",
-      "version": "0.3.0"
+      "version": "0.3.1"
     },
     {
       "name": "statusline",

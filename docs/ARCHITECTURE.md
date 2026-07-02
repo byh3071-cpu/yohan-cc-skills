@@ -65,7 +65,7 @@ plugins/yohan-core/
 ```
 
 - **서브에이전트 파이프라인**: `/yohan-core:flow`가 explorer(탐색)→planner(설계)→critic(적대검증, 문제0까지 반복)→shipper(출시) 순으로 위임. (출처: `commands/flow.md`)
-- **모델 배치**: explorer=haiku, planner/critic/shipper=sonnet. (출처: agent frontmatter)
+- **모델 배치**(tier, alias=세대 자동 승계): 탐색 explorer=haiku · 구현 shipper=sonnet · 판단·검증 planner/critic=opus · 지휘=세션 모델. **SoT는 `agents/*.md` frontmatter**(값은 항상 거기서 확인 — 이 줄은 파생 미러).
 - **skills**는 각 `SKILL.md`(frontmatter `name`/`description`, 일부 `allowed-tools`·`disable-model-invocation`)로 정의. `ship-it`은 `disable-model-invocation: true` + git 전용 allowed-tools.
 
 ### 4.2 statusline
