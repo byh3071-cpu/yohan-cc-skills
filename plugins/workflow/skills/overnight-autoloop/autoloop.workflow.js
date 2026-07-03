@@ -46,7 +46,7 @@ log(`[params ✓] scope=${SCOPE} · capPRs=${RESOLVE_CAP} · repos=${REPOS.map((
 function verifyCmd(r) {
   return r.kind === 'python'
     ? `cd ${r.path} && PYTHONPATH=${r.path} ${r.path}/.venv/Scripts/python.exe -m pytest -q`
-    : `cd ${r.path} && npm run typecheck ; npm run lint`
+    : `cd ${r.path} && npm run typecheck && npm run lint`
 }
 function repoOf(name) { return REPOS.find((x) => x.name === name) }
 
@@ -217,8 +217,8 @@ const report = await agent(
 )
 
 return {
-  headline: report.headline,
-  report_md: report.morning_report_md,
+  headline: report ? report.headline : '보고 합성 실패(report agent 무응답) — summary·results·deferred 원본으로 보고할 것',
+  report_md: report ? report.morning_report_md : `# 아침 보고 합성 실패\n\nreport agent 가 결과를 반환하지 못함. 아래 원본 데이터로 수기 보고 필요.\n\n## results\n${JSON.stringify(results, null, 2)}\n\n## deferred\n${JSON.stringify(deferred, null, 2)}`,
   summary: {
     discovered: all.length, fixable: fixable.length, attempted: toResolve.length,
     prs: results.filter((x) => x.pushed).length,

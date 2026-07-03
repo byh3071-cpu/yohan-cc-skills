@@ -18,7 +18,7 @@ description: "Use when 백요한 wants an unattended autonomous overnight run th
 ## Launch Steps
 1. **파라미터 3개를 런치층에서 완전히 확정** (`AskUserQuestion`). 사용자가 "알아서"라 하면 아래 기본값을 **명시적으로 확정해 args 에 실어 전달**한다(스크립트에 기본값 없음 — 아래 ⚠️):
    - **scope**: `audit`(감사발굴, 기본) | `github`(열린 이슈) | `both`
-   - **repos**: 기본 `[{name:'yohan-mcp',path:'C:/Users/Public/dev/yohan-ecosystem/yohan-mcp',kind:'python'}, {name:'control-tower',path:'C:/Users/Public/dev/yohan-ecosystem/yohan-control-tower',kind:'next'}]`. 다르면 `{name,path,kind}` 배열.
+   - **repos**: 기본 `[{name:'yohan-mcp',path:'C:/Users/Public/dev/yohan-ecosystem/yohan-mcp',kind:'python'}, {name:'control-tower',path:'C:/Users/Public/dev/yohan-ecosystem/yohan-control-tower',kind:'next'}]`. 다르면 `{name,path,kind}` 배열. **런칭 전 각 path 실재 확인**(`Test-Path`) — 없는 경로 있으면 런칭 중단하고 사용자에게 확인 (머신마다 레포 위치 다를 수 있음).
    - **capPRs**: 해결 시도 상한(기본 6, 양의 정수). 나머지는 발굴목록만.
 2. **scriptPath 절대경로 해석 (필수 선행)**: 엔진은 이 스킬과 같은 폴더의 `autoloop.workflow.js` (논리 경로 `${CLAUDE_PLUGIN_ROOT}/skills/overnight-autoloop/autoloop.workflow.js`). ⚠️ **Workflow tool 은 `${CLAUDE_PLUGIN_ROOT}` 를 확장하지 않는다** — 리터럴로 넘기면 파일 못 찾고 죽는다. 반드시 절대경로로 풀어서 전달:
    - Glob `~/.claude/plugins/cache/yohan-cc-skills/workflow/*/skills/overnight-autoloop/autoloop.workflow.js` → 매칭 경로 사용 (복수면 최신 버전 디렉터리).
