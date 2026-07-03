@@ -1,7 +1,7 @@
 {
   "name": "workflow",
-  "description": "백요한의 반복 작업 워크플로 스킬 묶음: VHK 독푸딩 교차검증·결함 역추적, 디자인 시안/HTML 시각화 보고, 세션 핸드오프·멀티머신 복원.",
-  "version": "0.1.0",
+  "description": "백요한의 반복 작업 워크플로 스킬 묶음: VHK 독푸딩 교차검증·결함 역추적, 디자인 시안/HTML 시각화 보고, 세션 핸드오프·멀티머신 복원, 무인 야간 결함수정 루프(overnight-autoloop).",
+  "version": "0.2.0",
   "author": {
     "name": "백요한",
     "email": "byh3071@gmail.com"
