@@ -324,7 +324,7 @@ if (DEFERRED_PATH) {
   const save = await agent(
     `[이월 저장] 아래 json 코드블록 내용을 파일 ${DEFERRED_PATH} 에 그대로 저장하라(전체 overwrite — append 금지. 상위 디렉터리 없으면 생성. 내용 가공·요약·번역 금지). 이 파일은 다음 run 의 Discover 가 읽는 이월 대기열이며, 이번 run 에서 시도된 항목은 이미 제거된 최신 상태다.\n` +
     `저장 후 파일을 다시 읽어 defects 길이가 ${keep.length} 인지 확인하고 saved(성공여부)/count(재독 길이)/note 로 보고하라.\n` +
-    `\`\`\`json\n${JSON.stringify({ savedAt: new Date().toISOString(), defects: keep }, null, 2)}\n\`\`\``,
+    `\`\`\`json\n${JSON.stringify({ savedAt: (typeof cfg.runStamp === 'string' && cfg.runStamp) || 'unstamped', defects: keep }, null, 2)}\n\`\`\``,
     { label: 'deferred:save', phase: 'Report', schema: DEFERRED_SAVE_SCHEMA, effort: 'low' },
   )
   const savedOk = !!(save && save.saved && save.count === keep.length)
