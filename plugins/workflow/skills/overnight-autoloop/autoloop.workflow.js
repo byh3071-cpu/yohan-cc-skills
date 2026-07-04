@@ -135,7 +135,13 @@ function extractGroupKeys(d) {
       keys.add(`${d.repo}|${base}`) // 고유 이름은 basename 일치(감사자마다 디렉터리 표기 유무가 달라서)
     }
   }
-  return [...keys]
+  // [과병합 가드, critic MAJOR 2026-07-05] 파일을 2개 이상 언급하는 "허브" 결함이 union-find
+  // 이행병합으로 무관 그룹들을 하나로 흡수하던 결함(실증: X{a,b,c}+Y{b}+Z{c} → 1그룹 →
+  // 난제 1건이 그룹 전체 PR 을 park). 다중 파일 결함은 그룹핑에서 제외(단독 처리) —
+  // 원래 목적(같은 단일 파일을 고치는 결함 페어, #31·#32 케이스)만 묶는다.
+  // 잔존 한계: 서로 다른 디렉터리의 동일 비범용 basename 은 여전히 오묶임 가능(SKILL.md Common Mistakes 참조).
+  const arr = [...keys]
+  return arr.length > 1 ? [] : arr
 }
 function groupDefects(list) {
   // union-find: 파일 키를 공유하는 결함을 이행적으로 병합. 루트=그룹 내 최소 인덱스(severity 정렬 순서 보존 → 그룹 대표=최고 우선순위).
