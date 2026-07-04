@@ -14,3 +14,10 @@ settings.json.bak-*
 .vhk/memory.json
 .vhk/refs.json
 .vhk/HARD_STOP
+
+# Secrets (ecosystem-audit-2026-07-04 높음 2건 보강)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
