@@ -26,7 +26,10 @@ function die(msg) {
     `받은 args = ${JSON.stringify(args)}`,
   )
 }
-const cfg = args
+// [2026-07-04] Workflow 런타임이 객체 args 를 JSON 문자열로 주입함(프로브 실증: typeof args==='string').
+// 7/1 "args 미도달"의 실제 정체 = 미도달이 아니라 문자열 도달. 문자열이면 parse(실패 시 die — silent fallback 아님).
+let cfg = args
+if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg) } catch (e) { die(`args 문자열 JSON.parse 실패: ${e.message}`) } }
 if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) die('args 객체 미수신 (Workflow args 직렬화 버그 의심 — 하네스가 스크립트에 args 를 전달했는지 먼저 확인)')
 if (!VALID_SCOPE.includes(cfg.scope)) die(`scope 누락/무효 (받음=${JSON.stringify(cfg.scope)}, 허용=${VALID_SCOPE.join('|')})`)
 if (!Array.isArray(cfg.repos) || cfg.repos.length === 0) die('repos 누락/빈배열 (대상 레포를 최소 1개 명시)')
