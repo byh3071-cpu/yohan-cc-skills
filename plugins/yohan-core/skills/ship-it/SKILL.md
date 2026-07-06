@@ -1,6 +1,6 @@
 ---
 name: ship-it
-description: 변경을 안전하게 출시(commit·push·release)할 때. pre-commit 점검→교차검증 게이트→두괄식 커밋→푸시. 게이트 통과 시 .claude/.gate-pass 갱신. 출시·배포·머지 시 사용.
+description: 변경을 안전하게 출시(commit·push·release)할 때. pre-commit 점검→교차검증 게이트→두괄식 커밋→푸시. 게이트 통과 시 통과 커밋의 HEAD SHA를 .claude/.gate-pass에 바인딩(무관한 이후 변경의 자동통과 차단). 출시·배포 시 사용.
 disable-model-invocation: true
 allowed-tools: Bash(git add *), Bash(git commit *), Bash(git status *), Bash(git push *)
 ---
@@ -12,9 +12,10 @@ allowed-tools: Bash(git add *), Bash(git commit *), Bash(git status *), Bash(git
 ## 절차
 1. `git status` / `git diff --cached`로 변경 확인.
 2. **pre-commit 점검**: 비밀·대용량·토큰 패턴(pre-commit-check 훅이 한 번 더 강제).
-3. **게이트**: cross-check 통과했는지 확인. 통과면 `.claude/.gate-pass`를 갱신(touch).
+3. **게이트**: cross-check 통과했는지 확인. 통과 못하면 여기서 중단.
 4. **커밋**: 두괄식 한 줄 요약 + 본문(무엇을/왜).
-5. **푸시**: `git push`. (critic-gate 훅이 게이트 미통과 시 확인 요청)
+5. **게이트 마커 바인딩**: 커밋 직후 그 커밋 해시를 마커에 기록 — `git rev-parse HEAD > .claude/.gate-pass`. 단순 touch·시간창(mtime) 방식 금지 → 검증된 바로 그 커밋에만 통과를 부여한다.
+6. **푸시**: `git push`. critic-gate 훅이 `.gate-pass`의 SHA와 현재 HEAD를 대조 — 일치할 때만 통과, 마커 이후의 무관한 새 커밋은 자동 통과 못 함(게이트 미통과 시 확인 요청).
 
 ## 커밋 메시지 형식
 타입: feat/fix/refactor/docs/chore/security

@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'SilentlyContinue'
 
 # --- Read status data from stdin (robust: open the redirected handle directly) ---
 $raw = ''
@@ -75,6 +75,20 @@ $pct = if ($ctxWindow -gt 0) { [math]::Round(($ctxUsed / $ctxWindow) * 100) } el
 $segments = @()
 if ($model) { $segments += $model }
 if ($style) { $segments += $style }
+# --- Reasoning effort (effort.level: low/medium/high/xhigh/max). Live session
+#     value, reflects mid-session /effort. Ultracode is NOT a distinct level and
+#     reports as xhigh (Claude Code exposes no separate ultracode flag) -> confirm
+#     ultracode via /workflows, not here. Absent when model lacks the effort param.
+#     ASCII label only + ANSI via ${E} braces (avoids $E[..] index mis-parse). ---
+$effort = $data.effort.level
+if ($effort) {
+    $effTxt = "eff:" + ([string]$effort).ToUpperInvariant()
+    if ("$effort" -eq 'max') {
+        $E = [char]27
+        $effTxt = "${E}[38;5;172m$effTxt${E}[0m"
+    }
+    $segments += $effTxt
+}
 $loc = $dir
 if ($branch) { $loc += " ($branch)" }
 if ($loc) { $segments += $loc }

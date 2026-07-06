@@ -37,8 +37,10 @@ description: Use PROACTIVELY whenever the user starts or even just mentions a NE
 | 게임 | `games` |
 | 요한 생태계 코어 도구 (vhk·brain·mcp 류) | `yohan-ecosystem` |
 | 실험·프로토타입·일회성 | `_sandbox` |
+| 해커톤·이벤트 제출물 | `_hackathon` |
+| 이미지·정적 에셋·리소스 저장 | `_assets` |
 | 보류 | `_hold` |
-→ **확신 없으면 사용자에게 물어봐.** 그룹은 `yohan-ecosystem`·`products`·`games`·`automation`·`_sandbox`·`_hold`·`_archive` 중 하나(add-repo.ps1 의 허용값).
+→ **확신 없으면 사용자에게 물어봐.** 그룹은 `yohan-ecosystem`·`products`·`games`·`automation`·`_sandbox`·`_hackathon`·`_hold`·`_archive`·`_assets` 중 하나(add-repo.ps1 의 ValidateSet 허용값 9종 전부).
 
 ## 주의
 - **`-Create` 필수** — 로컬만 만들면 멀티PC 동기화 안 됨(GitHub를 꼭 거쳐야 함).
