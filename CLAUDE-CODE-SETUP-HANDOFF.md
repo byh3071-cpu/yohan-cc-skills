@@ -24,7 +24,7 @@
 
 ### STEP 0 — 선행 확인
 ```powershell
-Test-Path C:\Users\Public\dev\automation\yohan-cc-skills
+Test-Path C:\Users\Public\dev\yohan-ecosystem\yohan-cc-skills
 Test-Path C:\Users\Public\dev\automation\boot-auto-pull-setup
 ```
 둘 다 `True` → STEP 1. 하나라도 `False` → boot-auto-pull-setup의 `Setup-HomePC.ps1` 먼저.

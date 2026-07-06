@@ -4,14 +4,14 @@
 
 ## 1. 한눈에
 
-git 레포 = **Claude Code 플러그인 마켓플레이스**. 루트 매니페스트(`marketplace.json`)가 `plugins/` 아래 3개 플러그인을 가리키고, 각 플러그인은 자체 매니페스트(`.claude-plugin/plugin.json`)와 구성요소(skills · agents · hooks · commands · MCP)를 갖는다. 규칙은 `RULES.md`(SoT)에서 `vhk sync`로 `AGENTS.md`·`.cursorrules`에 전파된다.
+git 레포 = **Claude Code 플러그인 마켓플레이스**. 루트 매니페스트(`marketplace.json`)가 `plugins/` 아래 4개 플러그인(`yohan-core`·`statusline`·`workflow`·`critical-thinking`)을 가리키고, 각 플러그인은 자체 매니페스트(`.claude-plugin/plugin.json`)와 구성요소(skills · agents · hooks · commands · MCP)를 갖는다. 규칙은 `RULES.md`(SoT)에서 `vhk sync`로 `AGENTS.md`·`.cursorrules`에 전파된다.
 
 ## 2. 디렉토리 구조 (실측)
 
 ```
 yohan-cc-skills/
 ├─ .claude-plugin/
-│  └─ marketplace.json              # 마켓플레이스 매니페스트 (플러그인 3종 등록)
+│  └─ marketplace.json              # 마켓플레이스 매니페스트 (플러그인 4종 등록)
 ├─ .agents/
 │  └─ CORE-RULES.md
 ├─ .cursor/
@@ -29,23 +29,25 @@ yohan-cc-skills/
 │  ├─ ARCHITECTURE.md               # 본 문서
 │  ├─ state/                        # next-task / blockers (append-only)
 │  ├─ analysis/2026-06-18-work-patterns.md
-│  └─ patterns/PAT-001-ps-statusline-encoding.md
+│  └─ patterns/PAT-001-ps-statusline-encoding.md 등 (PAT-NNN 시리즈)
 └─ plugins/
-   ├─ yohan-core/                   # 공통 코어 플러그인 (v0.3.0)
+   ├─ yohan-core/                   # 공통 코어 플러그인 (plugin.json v0.3.2)
    ├─ statusline/                   # 상태줄 셋업 (v0.1.0)
-   └─ workflow/                     # 워크플로 스킬 묶음 (v0.1.0)
+   ├─ workflow/                     # 워크플로 스킬 묶음 (v0.3.0)
+   └─ critical-thinking/            # 비판적 사고 모드 (v0.1.0, 기본 OFF 옵트인)
 ```
 
 ## 3. 마켓플레이스 구조
 
 `.claude-plugin/marketplace.json`:
 - `name`: `yohan-cc-skills`, `owner`: 백요한, `metadata.version`: `0.1.0`.
-- `plugins[]`: 각 항목이 `{ name, source(상대경로 ./plugins/<x>), description, version }`.
-  - `yohan-core` → `./plugins/yohan-core` (v0.3.0)
+- `plugins[]`: 각 항목이 `{ name, source(상대경로 ./plugins/<x>), description, version }`. **버전 SoT는 각 `plugin.json`**(아래 값은 plugin.json 실측 — marketplace.json 은 **수동 미러**라 plugin.json 변경 시 사람이 맞춰 정렬해야 한다. `sync-marketplace.ps1` 은 버전 정합을 **하지 않는다**. 문서는 하드코딩 대신 매니페스트 참조 — PAT-004):
+  - `yohan-core` → `./plugins/yohan-core` (v0.3.2)
   - `statusline` → `./plugins/statusline` (v0.1.0)
-  - `workflow` → `./plugins/workflow` (v0.1.0)
+  - `workflow` → `./plugins/workflow` (v0.3.0)
+  - `critical-thinking` → `./plugins/critical-thinking` (v0.1.0)
 
-각 플러그인 디렉토리는 `.claude-plugin/plugin.json`(name·description·version·author·homepage)을 자체 매니페스트로 갖는다. **불변식**: 플러그인 매니페스트 변경 시 `marketplace.json` 버전·메타 정합 유지(`RULES.md` 코딩 규칙). SessionEnd 훅 `sync-marketplace.ps1`이 관련 동기화를 담당한다(파일명 기반).
+각 플러그인 디렉토리는 `.claude-plugin/plugin.json`(name·description·version·author·homepage)을 자체 매니페스트로 갖는다. **불변식**: 플러그인 매니페스트 변경 시 `marketplace.json` 버전·메타 정합을 **사람이 수동으로** 유지(`RULES.md` 코딩 규칙). SessionEnd 훅 `sync-marketplace.ps1`은 `git fetch`로 원격 최신화 여부만 알림하며, 버전·매니페스트 정합은 수행하지 않는다.
 
 ## 4. 플러그인 모듈 구조
 
@@ -61,7 +63,7 @@ plugins/yohan-core/
 ├─ hooks/       hooks.json + 7 ps1
 ├─ output-styles/ yohan-voice.md
 ├─ references/  claude-code-docs.md
-└─ skills/      cc-docs · cost-guard · cross-check · cursor-docs · ship-it · yohan-writing
+└─ skills/      cc-docs · cost-guard · cross-check · cursor-docs · ship-it · yohan-writing · studio-post
 ```
 
 - **서브에이전트 파이프라인**: `/yohan-core:flow`가 explorer(탐색)→planner(설계)→critic(적대검증, 문제0까지 반복)→shipper(출시) 순으로 위임. (출처: `commands/flow.md`)
@@ -87,8 +89,20 @@ plugins/workflow/
    ├─ visualize/           SKILL.md  # 디자인 시안/HTML 시각화 보고
    ├─ handoff/             SKILL.md  # 세션 핸드오프 · 멀티머신 복원
    ├─ new-repo/            SKILL.md  # 새 GitHub 레포 생성·그룹분류·repos.json
-   └─ parallel/            SKILL.md  # git worktree 자동 격리(병렬 작업)
+   ├─ parallel/            SKILL.md  # git worktree 자동 격리(병렬 작업)
+   └─ overnight-autoloop/  SKILL.md  # 무인 야간 결함 발굴→수정→검증→PR 루프(머지 금지)
 ```
+
+### 4.4 critical-thinking (비판적 사고 모드 — 기본 OFF 옵트인)
+```
+plugins/critical-thinking/
+├─ .claude-plugin/plugin.json
+├─ agents/skeptic.md            # 추론·의사결정 적대검증 (model: sonnet)
+├─ commands/critical.md         # /critical lite|full|ultra|auto|off 토글
+└─ skills/critical-thinking/    # 소크라테스식 질문·CoVe 자가검증·steelman-attack
+```
+
+- 대화·추론 시점의 아첨(sycophancy)·할루시네이션 억제 렌즈. **코드용 `critic` 서브에이전트와 분리 계통** — skeptic=추론/설계/결정, critic=코드 결함. (출처: `agents/skeptic.md`, `plugin.json`)
 
 ## 5. 훅(hook) 생명주기
 

@@ -20,6 +20,8 @@ if (Test-Path $gate) {
 if (-not $ok) {
   $reason = "critic-gate: 릴리즈 게이트 미통과. '/flow' 또는 '/release-gate'로 적대적 리뷰를 통과한 뒤 push 하세요. (통과 시 .claude/.gate-pass 갱신)"
   $out = @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'ask'; permissionDecisionReason = $reason } } | ConvertTo-Json -Depth 5 -Compress
+  # PAT-002: 비-ASCII 를 \uXXXX 로 강제(모지바케·JSON 파싱실패 방지).
+  $out = [regex]::Replace($out, '[^\x00-\x7F]', { param($m) '\u{0:x4}' -f [int][char]($m.Value[0]) })
   Write-Output $out
 }
 exit 0
