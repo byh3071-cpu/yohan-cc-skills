@@ -13,7 +13,7 @@
       "name": "yohan-core",
       "source": "./plugins/yohan-core",
       "description": "백요한 1인 AI기업 코어 — 글쓰기·교차검증·비용가드·릴리즈 스킬 + explorer/planner/critic/shipper 서브에이전트 + 보안/포맷/세션로그 훅 + yohan-mcp(Notion) 번들. 모든 레포 공통 두뇌.",
-      "version": "0.3.2"
+      "version": "0.3.3"
     },
     {
       "name": "statusline",
@@ -25,7 +25,7 @@
       "name": "workflow",
       "source": "./plugins/workflow",
       "description": "반복 작업 워크플로 스킬 묶음 — release-gate(릴리즈 전 게이트+테스트+적대적리뷰 문제0까지), dogfood-crosscheck(VHK 독푸딩 교차검증·결함 역추적), visualize(디자인 시안/HTML 시각화 보고), handoff(세션 핸드오프·멀티머신 복원), overnight-autoloop(무인 야간 결함 발굴→수정→검증→PR 루프, 머지 금지 — run 간 이월+같은 파일 배칭).",
-      "version": "0.3.0"
+      "version": "0.3.1"
     },
     {
       "name": "critical-thinking",
