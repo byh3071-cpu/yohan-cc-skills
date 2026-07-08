@@ -208,10 +208,14 @@ const SEV = { high: 0, med: 1, low: 2 }
 const dedupKey = (d) => (d.repo + '|' + (d.title || '').toLowerCase().trim()).slice(0, 120)
 const seen = new Set()
 const fixable = []
+let dropNonFixable = 0
+let dropUnknownRepo = 0
+let dropDedup = 0
 for (const d of all) {
-  if (!d || !d.fixable || !repoOf(d.repo)) continue
+  if (!d || !d.fixable) { dropNonFixable++; continue }
+  if (!repoOf(d.repo)) { dropUnknownRepo++; continue }
   const k = dedupKey(d)
-  if (seen.has(k)) continue
+  if (seen.has(k)) { dropDedup++; continue }
   seen.add(k)
   fixable.push(d)
 }
@@ -220,7 +224,8 @@ fixable.sort((a, b) => (SEV[a.severity] ?? 3) - (SEV[b.severity] ?? 3))
 const groups = groupDefects(fixable)
 const toResolve = groups.slice(0, RESOLVE_CAP)
 const deferred = groups.slice(RESOLVE_CAP).flat()
-log(`발굴 ${all.length}(이월 ${carriedIn} 포함) · 수정가능 ${fixable.length} · 그룹 ${groups.length}(배칭 ${groups.filter((g) => g.length > 1).length}) · 해결시도 ${toResolve.length}그룹/${toResolve.flat().length}건 · 보류 ${deferred.length}건`)
+const dropped = all.length - fixable.length
+log(`발굴 ${all.length}(이월 ${carriedIn} 포함) · 수정가능 ${fixable.length} · dropped ${dropped} (non-fixable ${dropNonFixable} · unknown-repo ${dropUnknownRepo} · dedup ${dropDedup}) · 그룹 ${groups.length}(배칭 ${groups.filter((g) => g.length > 1).length}) · 해결시도 ${toResolve.length}그룹/${toResolve.flat().length}건 · 보류 ${deferred.length}건`)
 
 function branchFor(d, i) {
   const s = (d.title || 'fix').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 28) || 'fix'

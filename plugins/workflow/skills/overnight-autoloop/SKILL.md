@@ -26,10 +26,12 @@ run 간 연속성 2종 (2026-07-04 실전 2회에서 역설계):
    - **capPRs**: 해결 시도 상한(기본 6, 양의 정수) — **단위=그룹(=브랜치=PR)**. 같은 파일 공유 결함은 1그룹으로 배칭되므로 실제 수정 결함 수는 cap 보다 많을 수 있음. 나머지는 발굴목록만.
    - **deferredPath** (선택이지만 **기본 포함 권장**): 미시도 결함 이월 파일의 **절대경로**. 기본 `C:/Users/Public/dev/yohan-ecosystem/yohan-brain/docs/audits/overnight-deferred.json` (주레포=yohan-brain, 아침보고 저장처와 같은 폴더). **미전달 = 이월 전체 비활성** — 스크립트가 `[이월] deferredPath 미전달 — 이월 비활성` 1줄 로그 후 저장·주입 모두 스킵(silent 아님). 이월 없으면 미시도가 다음 run 에 안 넘어가 발굴이 비결정적으로 돌아감. 런칭 전 상위 폴더 실재 확인(`Test-Path`).
    - **resumeDeferred** (선택, 명시 기본 `true` — 미전달=true 는 스크립트에 문서화된 기본값): 이전 run 이월분을 발굴에 선주입할지. `false` 는 **주입만** 끔 — 이번 run 미시도 **저장은 deferredPath 만 있으면 항상 수행**(비대칭 게이팅)하고, 미주입 이월분은 저장 시 대기열에 그대로 보존(유실 없음, 이번 run 큐와 중복되는 건만 새 것으로 대체). 이번 run 만 이월 무시하고 순수 새 발굴을 원할 때 false.
-2. **scriptPath 절대경로 해석 (필수 선행)**: 엔진은 이 스킬과 같은 폴더의 `autoloop.workflow.js` (논리 경로 `${CLAUDE_PLUGIN_ROOT}/skills/overnight-autoloop/autoloop.workflow.js`). ⚠️ **Workflow tool 은 `${CLAUDE_PLUGIN_ROOT}` 를 확장하지 않는다** — 리터럴로 넘기면 파일 못 찾고 죽는다. 반드시 절대경로로 풀어서 전달:
+2. **scriptPath 절대경로 해석 + CRLF 안전 사본 (필수 선행)**: 엔진은 이 스킬과 같은 폴더의 `autoloop.workflow.js` (논리 경로 `${CLAUDE_PLUGIN_ROOT}/skills/overnight-autoloop/autoloop.workflow.js`). ⚠️ **Workflow tool 은 `${CLAUDE_PLUGIN_ROOT}` 를 확장하지 않는다** — 리터럴로 넘기면 파일 못 찾고 죽는다. 반드시 절대경로로 풀어서 전달:
    - Glob `~/.claude/plugins/cache/yohan-cc-skills/workflow/*/skills/overnight-autoloop/autoloop.workflow.js` → 매칭 경로 사용 (복수면 최신 버전 디렉터리).
    - 매칭 0건이면 중단하고 사용자에게 `/plugin update` 요청 (구버전 플러그인).
-3. **Workflow 런칭**: `Workflow({ scriptPath: "<2에서 해석한 절대경로>", args: { scope, repos, capPRs, deferredPath, resumeDeferred } })`. 백그라운드 완주 후 알림. (이월을 의도적으로 안 쓸 때만 deferredPath 생략.)
+   - **Windows 플러그인 캐시 CRLF 대응**: Glob 으로 찾은 `$src` 를 scratchpad LF 사본 `$dst` 로 복사한 뒤 **Workflow `scriptPath`에는 `$dst`만** 전달한다 (원본 `$src` 직접 전달 금지 — Workflow 가 CR control character 거부).
+     - PowerShell 예: `$dst = Join-Path $env:TEMP "autoloop-lf-$(Get-Date -Format yyyyMMdd-HHmmss).js"; Get-Content -Raw $src | ForEach-Object { $_ -replace "`r", '' } | Set-Content -NoNewline $dst -Encoding utf8`
+3. **Workflow 런칭**: `Workflow({ scriptPath: "<2에서 만든 LF scratchpad 절대경로>", args: { scope, repos, capPRs, deferredPath, resumeDeferred } })`. 백그라운드 완주 후 알림. (이월을 의도적으로 안 쓸 때만 deferredPath 생략.)
    - ⚠️ **args 미전달/불완전이면 스크립트가 즉사한다**(silent fallback 금지, 7/1 오실행 재발방지). 기본값 폴백은 이제 스크립트가 아니라 **이 런치층 책임** — "알아서"여도 반드시 완전한 `{scope,repos,capPRs,deferredPath}` 를 만들어 넘길 것.
    - ✅ **args 전달 확인**: 진행로그 첫 줄에 `[params ✓] scope=… · capPRs=… · repos=… · deferredPath=… · resumeDeferred=…` 가 떠야 정상. 이 줄이 없거나 workflow 가 `[overnight-autoloop] 파라미터 검증 실패` 로 죽으면 = Workflow args 하네스 버그 재현 → 하드코딩 args 로 재런칭(임시) + blockers 기록.
 4. 사용자에게 "가동 + 자도 됨" 1줄 + 안전요약 보고.
@@ -53,6 +55,7 @@ run 간 연속성 2종 (2026-07-04 실전 2회에서 역설계):
 
 ## Common Mistakes
 - scriptPath 에 `${CLAUDE_PLUGIN_ROOT}` 리터럴 그대로 전달 → Workflow tool 은 변수 확장 안 함. Glob 으로 절대경로 해석 후 전달 (Launch Steps 2).
+- Windows 플러그인 캐시 CRLF → Workflow CR control character 거부. Glob 원본 `$src` 직접 전달 금지, scratchpad LF 사본 `$dst` 만 scriptPath 에 전달 (Launch Steps 2).
 - 파라미터 없이 바로 런칭 → scope/repos/cap 먼저 **런치층에서 완전 확정**해 args 로 전달(스크립트 기본값 폴백 없음, "알아서"여도 명시 확정).
 - args 전달 확인 생략 → `[params ✓]` 로그 줄 확인 필수(안 뜨면 args 미도달 = 오실행 위험).
 - deferredPath 생략 → 미시도 결함이 다음 run 에 이월 안 됨(매 run 비결정적 재발굴 — 7/4 실측: run1 미시도 med 2건이 run2 에서 증발). 특별한 이유 없으면 yohan-brain 경로를 항상 전달.
