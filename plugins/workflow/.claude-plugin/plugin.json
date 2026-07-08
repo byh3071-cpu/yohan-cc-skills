@@ -1,7 +1,7 @@
 {
   "name": "workflow",
   "description": "백요한의 반복 작업 워크플로 스킬 묶음(7종): 새 레포 생성·멀티PC 전파(new-repo), git worktree 병렬 격리(parallel), 릴리즈 전 검증 게이트(release-gate), VHK 독푸딩 교차검증·결함 역추적(dogfood-crosscheck), 디자인 시안/HTML 시각화 보고(visualize), 세션 핸드오프·멀티머신 복원(handoff), 무인 야간 결함수정 루프(overnight-autoloop).",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": {
     "name": "백요한",
     "email": "byh3071@gmail.com"
