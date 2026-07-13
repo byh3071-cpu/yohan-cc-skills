@@ -1,7 +1,7 @@
 {
   "name": "yohan-core",
   "description": "백요한 1인 AI기업 코어 플러그인 — 글쓰기(한국어 반말 두괄식)·교차검증·비용가드·릴리즈 스킬 + explorer/planner/critic/shipper/prd-generator/prd-validator 서브에이전트 + 보안/포맷/세션로그 훅 + yohan-mcp(Notion) 번들. 모든 레포에 상속되는 공통 두뇌.",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "author": {
     "name": "백요한",
     "email": "byh3071@gmail.com"
