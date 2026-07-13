@@ -1,4 +1,4 @@
-# CF_HTML을 UTF-8 바이트 오프셋으로 직접 빌드해 클립보드에 넣는다.
+﻿# CF_HTML을 UTF-8 바이트 오프셋으로 직접 빌드해 클립보드에 넣는다.
 # PS 5.1 Set-Clipboard -AsHtml의 ANSI 인코딩 버그 우회.
 param([Parameter(Mandatory=$true)][string]$Path)
 
