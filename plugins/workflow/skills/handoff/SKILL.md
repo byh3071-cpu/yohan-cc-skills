@@ -1,71 +1,94 @@
 ---
 name: handoff
-description: Use when a session is ending/pausing, moving between machines, or the user asks for chat/session end verification — (0)채팅 종료 검증 →(full) dev log·next-task·전달 프롬프트·커밋(승인 후). Triggers - "채팅 종료 검증", "채팅 종료 섹션 검증", "세션 종료 검증", "핸드오프", "마무리하자", "오늘 끝", "내일 이어서", "노트북으로 전달", "정리하고 끝", "다른 기기에서 이어서", "컨텍스트 work로 남겨".
+description: Use when a session is ending/pausing, moving between machines, or the user asks for chat/session end verification — scan→close(기본)→full. 채팅 종료 검증=재고+안전 조치. Triggers - "채팅 종료 검증", "채팅 종료 섹션 검증", "세션 종료 검증", "핸드오프", "마무리하자", "오늘 끝", "내일 이어서", "노트북으로 전달", "정리하고 끝", "다른 기기에서 이어서", "컨텍스트 work로 남겨".
 ---
 
 # handoff
 
 세션 맥락을 디스크에 고정하고, 다른 기기 복원용 **전달 프롬프트**를 만든다.
-history에 반복되는 **「채팅 종료 검증」** 을 **0단계**로 공식화.
+「채팅 종료 검증」= **재고(감사) + 안전한 마감 조치** (리포트만 아님 — history 실측).
 
-## 모드
+## 모드 (R1)
 
 | 모드 | 언제 | 하는 일 |
 |------|------|---------|
-| **verify-only** | "채팅/세션 종료 검증"·"채팅 종료 섹션 검증"만 (핸드오프·마무리·내일·전달 없음) | **0단계만** 표 보고. 커밋·파일쓰기·삭제 **기본 금지** |
-| **full** | 핸드오프/마무리/내일 이어서/전달/정리하고 끝 **또는** 종료검증+핸드오프가 **한 메시지에 같이** | **0 → 1~7** |
+| **scan** | "표만", "확인만", "아직 건드리지 마" | **재고만** 보고. 쓰기·삭제·커밋 금지 |
+| **close** | **"채팅/세션 종료 검증"**·"섹션 검증"·"종료 검증 ㄱㄱ" (기본) | 재고 → **안전 조치** (문서/핸드오프/next-task/log). 커밋·push·삭제는 **승인 후** |
+| **full** | 핸드오프·마무리·내일·전달·정리하고 끝 **또는** 종료검증+핸드오프가 한 메시지 | close + 전달 프롬프트 + (승인 시) 커밋·설정 동기화 |
 
-애매하면 verify-only 먼저 → "full 할까?" 한 줄.
+- 종료검증만 = **close** (verify-only 아님).
+- 애매하면 close로 진행하되, 위험 조치는 승인 받고.
+- `/release-gate`·머지 강행과 섞지 말 것.
 
 ## 원칙
 
-- 핸드오프 **파일** = 1차 진실 (노션만으로 복원 약함).
+- 핸드오프 **파일** = 1차 진실 (노션만 복원 약함).
 - 산출물 **경로 포인터** 필수.
-- **≠ `/release-gate`.** 머지/publish 게이트 아님. 세션 마감·이어가기만.
-- 브랜치/worktree **삭제 강제 금지** (목록·승인 후).
+- 브랜치/worktree **삭제·머지·force** = 승인 후만.
+- Notion **적재** = 강제 자동화 말고 후보+템플릿(또는 MCP 있으면 제안 후 승인).
 
-## 0. 채팅 종료 검증
+## 재고 축 (R2) — 네 말 그대로
 
-실측만 (`git status -sb` 등). 해당 없으면 그 항 **Pass(N/A)**.
+실측 (`git status -sb`, 파일 존재, 세션에서 한 일). 없으면 **N/A**.
 
-| # | 항목 | Pass | Warn/Fail | 권고 |
-|---|------|------|-----------|------|
-| 1 | 작업 잔여 | clean 또는 의도된 dirty | 미커밋·미추적 | 커밋/stash 후보만 (승인 전 실행 X) |
-| 2 | 다음 할 일 | next-task·HANDOFF·LIVE에 세션 기준 "다음" | 없음/stale | full이면 2단계에서 갱신 |
-| 3 | 기록 누락 | log/ADR/TS/README 후보 없음 | 코드 변경인데 log 없음 등 | 경로 후보만 (VHK governance면 log 필수) |
-| 4 | 이슈·블로커 | 새 막힘 없음/이미 기록 | 막힌 채 미기록 | 이슈 1줄·blockers 제안 |
-| 5 | 브랜치·worktree | 정리 불필요 | 죽은 브랜치/worktree 의심 | **목록만** |
-| 6 | 거짓완료 | 완료 주장 없거나 모순 없음 | 미완·게이트 실패인데 완료 톤 | `vhk review` 권고. done 금지 |
+| 축 | 볼 것 | 결과 값 |
+|----|------|---------|
+| **문서화** | log/ADR/TS/README/HANDOFF 초안 필요? | 없음 / 후보경로 / 갱신함 |
+| **적재** | Notion Dev Log 등 외부 적재 필요? | 없음 / 후보1줄 / 승인후적재 |
+| **갱신** | next-task·LIVE·기존 HANDOFF·버전 줄 stale? | OK / stale→고침 |
+| **핸드오프** | 이어가기 문서·전달 블록 필요? | 불필요 / 갱신·생성 |
+| **Goal·이슈** | goals·이슈·blockers로 남길 것? | 없음 / 초안1줄 |
+| **git** | 미커밋·미추적·푸시 안 됨? | clean / 잔여목록 |
+| **브랜치·worktree** | 죽은 브랜치·worktree? | 없음 / 목록(삭제=승인) |
+| **거짓완료** | 미완·게이트 실패인데 완료 톤? | OK / `vhk review` 권고 |
+
+## 출력 (모든 모드 공통 뼈대)
 
 ```text
 ## 채팅 종료 검증
-| # | 항목 | 결과 | 근거 | 권고 |
-요약: Pass N · Warn N · Fail N · N/A N
-모드: verify-only | full
+모드: scan | close | full
+
+### 재고
+| 축 | 상태 | 근거 | 조치 |
+| 문서화 | … | … | 지금/나중/안함 |
+| 적재 | … | … | … |
+| 갱신 | … | … | … |
+| 핸드오프 | … | … | … |
+| Goal·이슈 | … | … | … |
+| git | … | … | … |
+| 브랜치·worktree | … | … | … |
+| 거짓완료 | … | … | … |
+
+### 조치 분류
+- 지금 함: …
+- 승인 필요: … (커밋/push/삭제/머지/Notion쓰기)
+- 나중에/안 함: …
+
+### 다음에 이어갈 한 줄
+…
 ```
 
-Fail 있어도 보고. full은 고칠 수 있는 항만 진행(커밋·삭제는 승인 후).
+## close 절차 (todo)
 
-## full 절차 (todo)
+1. **재고** (위 표).
+2. **지금 함 (안전):** 해당되는 것만 — `docs/log/...` append · next-task/LIVE/HANDOFF 갱신 · Goal/이슈 **초안 문구** · 브랜치 목록.
+3. **승인 필요**만 따로 묻고 실행 (커밋·push·삭제·Notion 적재).
+4. 짧게 “이어갈 한 줄” + (원하면) full 제안.
 
-0. 채팅 종료 검증
-1. dev log append-only (`docs/log/...`) — 한 것·왜·다음·포인터
-2. 상태: VHK=`next-task`+LIVE / 그 외=`HANDOFF.md`
-3. 전달 프롬프트 (경로·브랜치·명령·기기차·yohan-cc-skills install)
-4. 커밋 **승인 후** (push/머지도 승인 후)
-5. 설정 드리프트 → install (파일복사 X)
-6. (VHK) `vhk work handoff` 보조
-7. (선택) 복원 자가평가 1~5
+## full 절차 (todo) — close 위에 얹음
 
-## 출력
-
-- verify-only → 표 + 요약 (+ full 제안)
-- full → 표 + 핸드오프 경로 + 전달 프롬프트 블록
+1~4 = close
+5. **전달 프롬프트** (경로·브랜치·명령·기기차·yohan-cc-skills install)
+6. **커밋 승인 후** (push/머지도 승인 후)
+7. 설정 드리프트 → install (파일복사 X)
+8. (VHK) `vhk work handoff` 보조
+9. (선택) 복원 자가평가 1~5
 
 ## 중복 방지
 
 | 이 스킬 | 다른 것 |
 |---------|---------|
-| 세션 마감 검증 | `/release-gate` = 릴리즈 직전 |
+| 세션 마감 재고·close | `/release-gate` = 릴리즈 직전 |
 | 전달 프롬프트 | `vhk context` = 저장소 |
-| 거짓완료 의심 | `vhk review` 권고만 (대체 실행 X) |
+| 거짓완료 | `vhk review` 권고만 |
+| Notion 적재 | 강제 MCP 실행 X — 후보/승인 |
