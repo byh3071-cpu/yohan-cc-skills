@@ -1,7 +1,7 @@
 {
   "name": "workflow",
   "description": "백요한의 반복 작업 워크플로 스킬 묶음: new-repo, parallel, release-gate, dogfood-crosscheck, visualize, handoff(채팅 종료 검증=scan/close/full·재고축), overnight-autoloop, VHK P0(gate/evolve/dogfood-issue/bootstrap/goal-health).",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "author": {
     "name": "백요한",
     "email": "byh3071@gmail.com"

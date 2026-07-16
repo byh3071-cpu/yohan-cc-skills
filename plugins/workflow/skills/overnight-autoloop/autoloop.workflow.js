@@ -73,9 +73,10 @@ const GITRULES = `
 [GIT 규율 — 엄수]
 - 시작: 해당 레포 cd, git checkout master(트리 더러우면 git checkout -- . 정리). 기본=master.
 - 브랜치: git checkout -b <branchName>(있으면 checkout 후 이어서 amend).
-- 커밋: git add -A && git commit, 메시지 한국어 + 마지막줄 "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>".
+- 커밋: git add -A && git commit, 메시지 한국어(간결·"왜" 중심). AI 흔적 금지 — 커밋 메시지에 Co-Authored-By·🤖·Claude 언급 넣지 마라.
+- 커밋 후 검증: git log -1 --pretty=%B 출력에 co-authored·🤖·claude(대소문자 무시) 매치 시 git commit --amend 로 그 줄을 지우고 재확인(프롬프트 준수 실패 백스톱).
 - 종료: 반드시 git checkout master(트리 clean).
-[절대 금지] git merge · gh pr merge · git push --force · gh issue/pr close · 다른 브랜치 수정 · 외부 데이터스토어 재적재 · 노션 쓰기.
+[절대 금지] git merge · gh pr merge · git push --force · gh issue/pr close · 다른 브랜치 수정 · 외부 데이터스토어 재적재 · 노션 쓰기 · 커밋/PR에 AI 흔적(Co-Authored-By·🤖 Generated·Claude 언급).
 `
 
 const DEFECT_ITEM_SCHEMA = {
@@ -293,7 +294,7 @@ for (let i = 0; i < toResolve.length; i++) {
     lastReview = rev ? rev.verdict : '리뷰 무응답'
     if (rev && !rev.blocker) {
       const fin = await agent(
-        `${ENV}\n${GITRULES}\n[확정 push+PR] 레포=${d.repo} 경로=${r.path} 브랜치=${branch}. git push -u origin ${branch} 후 gh pr create --base master --head ${branch}(제목·본문 한국어, 본문에 ${batched ? `배칭 결함 ${g.length}건 각각의 요약·수정·검증결과` : '결함요약·수정·검증결과'}·"머지 금지: 사람 검토 대기" + 끝에 "🤖 Generated with Claude Code"). 머지 절대 금지. push/gh 가 막히면 pushed=false·blockedReason 기록, 로컬커밋은 유지. 끝에 git checkout master.`,
+        `${ENV}\n${GITRULES}\n[확정 push+PR] 레포=${d.repo} 경로=${r.path} 브랜치=${branch}. git push -u origin ${branch} 후 gh pr create --base master --head ${branch}(제목·본문 한국어, 본문에 ${batched ? `배칭 결함 ${g.length}건 각각의 요약·수정·검증결과` : '결함요약·수정·검증결과'}·"머지 금지: 사람 검토 대기"). PR 제목·본문에 AI 흔적(🤖·Claude·co-authored) 넣지 마라. 머지 절대 금지. push/gh 가 막히면 pushed=false·blockedReason 기록, 로컬커밋은 유지. 끝에 git checkout master.`,
         { label: `finalize:${d.repo}#${i + 1}`, phase: 'Resolve', schema: FINAL_SCHEMA, effort: 'medium' },
       )
       pushed = fin ? fin.pushed : false
