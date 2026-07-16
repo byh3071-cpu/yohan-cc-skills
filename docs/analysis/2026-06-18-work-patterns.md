@@ -40,6 +40,7 @@
 | ④ | `/dogfood-crosscheck` | ✅ 빌드 |
 | ⑤ | `/visualize` | ✅ 빌드 |
 | ② | `/handoff` | ✅ 빌드 |
+| ②+ | 「채팅 종료 검증」루틴 (history 반복 문구) | ✅ `/handoff` — 2026-07-16 verify-only→**scan/close/full** + 재고축(문서·적재·갱신·핸드오프·Goal…) 로 정정 |
 | ③ | (Notion Dev Log 마감) | ⏸ 보류 |
 | 환경 | `/setup-statusline` | ✅ 빌드(시드) |
 
