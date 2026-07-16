@@ -44,7 +44,7 @@ claude plugin install statusline@yohan-cc-skills
 | `/release-gate` | 머지·publish 전 게이트(tsc→eslint→build)+테스트+적대적 리뷰를 문제 0까지, PR→머지→태그. 사람몫(2FA)만 스킵 |
 | `/dogfood-crosscheck` | VHK 독푸딩 → CC 독립분석 교차대조 → 도구결함 vs 앱버그 분류 → 이슈 초안 |
 | `/visualize` | 디자인 시안 5~6개(단일 HTML) / 결과·버전비교 HTML 보고서(두괄식·비개발자용) |
-| `/handoff` | 핸드오프md + 멀티머신 전달프롬프트 + 설정 동기화 |
+| `/handoff` | **채팅 종료 검증**(verify-only/full) + 핸드오프md + 멀티머신 전달프롬프트 + 설정 동기화 |
 | `/new-repo` | 새 GitHub 레포 생성 + 그룹 자동분류 + repos.json 등록·push → 멀티PC 같은 폴더 자동 정리 |
 | `/parallel` | 병렬·동시 작업 시 worktree 자동 격리(생성·작업·정리) → 충돌 0. worktree 몰라도 됨 |
 | `/overnight-autoloop` | 무인 야간 결함 발굴→수정→검증→PR 루프(머지 금지). run 간 이월 + 같은 파일 배칭 |
