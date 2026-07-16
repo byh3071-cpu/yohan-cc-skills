@@ -20,3 +20,10 @@
 - 진입점: `plugins/workflow/skills/handoff/SKILL.md`
 - 버전: `plugins/workflow/.claude-plugin/plugin.json` → 0.3.4
 - 브랜치: `feat/handoff-session-end-verify` @ `199688d` (origin/main ahead 2, **미push**)
+
+## 후속 (같은 날 close 재검증)
+- PR [#32](https://github.com/byh3071-cpu/yohan-cc-skills/pull/32) 머지 완료 (`6fa294b`).
+- `workflow@yohan-cc-skills` **0.3.4** 설치됨 (Claude 재시작 필요).
+- Orca 연습 worktree `prac-agy`·`prac-cursor` 삭제 완료. vhk worktree = main만.
+- 잔여(선택): 로컬 `fix/overnight-autoloop-crlf-launch` (remote gone) 삭제 승인 대기.
+- 다음 세션: Claude 재시작 후 `채팅 종료 검증 ㄱㄱ`로 라이브 스킬 확인.

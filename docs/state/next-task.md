@@ -6,3 +6,4 @@
 - [x] 2026-07-03 멀티모델 배분 정렬 완료 — planner·critic→opus, 독트린 3곳 정렬(CLAUDE.md·cost-guard·핀)+ARCHITECTURE·PRD 미러 동반, 순정 스위치 추가, plugin 0.3.1. 상세: `docs/log/2026-07-02-handoff.md` §5 정정. (Codex·cross-check 통합은 별건 대기)
 - [x] 2026-07-06 문서 드리프트 정합 — README·PRD·ARCHITECTURE를 실측 4플러그인(critical-thinking 추가)·yohan-core studio-post 스킬·workflow overnight-autoloop·plugin.json 버전으로 통일, SETUP-HANDOFF STEP0 경로 정정(automation→yohan-ecosystem), 2026-07-02 핸드오프 상태선 반영완료로 정정. (Codex 통합은 이미 라이브 활성 — settings.json codex@openai-codex + 마켓 등록; 잔여 cross-check/release-gate 병렬통합)
 - [ ] 2026-07-16 `/handoff` 채팅 종료 검증(scan/close/full·재고축) — 브랜치 `feat/handoff-session-end-verify` 커밋 2개 로컬만. **다음: push→PR→머지→plugin 0.3.4 갱신**. 상세 `docs/log/2026-07-16-handoff-session-end-verify.md`
+- [x] 2026-07-16 `/handoff` 채팅 종료 검증 출시 완료 — PR #32 머지·workflow 0.3.4 설치·prac worktree 삭제. **다음: Claude 재시작 후 라이브 `채팅 종료 검증 ㄱㄱ`**. (선택) gone 로컬 브랜치 `fix/overnight-autoloop-crlf-launch` 삭제. 상세 log 동일 파일 §후속.
