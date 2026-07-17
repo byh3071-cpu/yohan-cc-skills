@@ -116,3 +116,27 @@ test('(h) 둘째 줄 경로 추출', () => {
   assert.equal(extractEvidenceLoc(d.evidence), 'adapters/notion_adapter.py:138')
   assert.equal(dedupKey(d), 'yohan-mcp|adapters/notion_adapter.py:138')
 })
+
+test('(i) 산문 read/write 보다 :라인 경로 우선 — 서로 다른 키', () => {
+  const a = { repo: 'r', title: 'rw a', evidence: 'read/write failure; src/a.py:10' }
+  const b = { repo: 'r', title: 'rw b', evidence: 'read/write failure; src/b.py:20' }
+  assert.equal(extractEvidenceLoc(a.evidence), 'src/a.py:10')
+  assert.equal(extractEvidenceLoc(b.evidence), 'src/b.py:20')
+  assert.notEqual(dedupKey(a), dedupKey(b))
+  assert.equal(dedupKey(a), 'r|src/a.py:10')
+  assert.equal(dedupKey(b), 'r|src/b.py:20')
+})
+
+test('(j) 산문 Node.js 보다 :라인 경로 우선', () => {
+  const d = { repo: 'r', title: 'node', evidence: 'Node.js failure; src/a.py:10' }
+  assert.equal(extractEvidenceLoc(d.evidence), 'src/a.py:10')
+  assert.equal(dedupKey(d), 'r|src/a.py:10')
+})
+
+test('(k) 루트 Dockerfile:7 다른 title → 같은 키', () => {
+  const a = { repo: 'r', title: 'base image', evidence: 'Dockerfile:7 FROM latest' }
+  const b = { repo: 'r', title: 'apt layer', evidence: 'Dockerfile:7 RUN apt-get' }
+  assert.equal(extractEvidenceLoc(a.evidence), 'dockerfile:7')
+  assert.equal(dedupKey(a), dedupKey(b))
+  assert.equal(dedupKey(a), 'r|dockerfile:7')
+})

@@ -11,18 +11,32 @@ export const meta = {
 // ── testable helpers (Workflow 래퍼는 export const meta 만 허용 → 이름 있는 함수로 노출, 단위테스트가 소스에서 추출)
 // @@HELPERS_BEGIN@@
 /**
- * evidence 전체에서 경로처럼 생긴 첫 토큰(+선택 :라인) 추출. 실패 시 null.
- * 매칭: 슬래시(/|\) 포함(Dockerfile 등 무확장자) 또는 .확장자 1~6자. 산문 단어 오매칭 방지.
- * 드라이브 레터 보존(c:/… vs d:/…). 백슬래시→슬래시, 소문자.
+ * evidence 전체에서 경로처럼 생긴 토큰(+선택 :라인) 추출. 실패 시 null.
+ * 우선순위: (1) ":라인" 붙은 경로형 — 실제 결함 위치는 거의 항상 :라인.
+ *           (2) 없을 때만 강한 경로(슬래시+확장자). read/write·Node.js 산문은 제외 → title 폴백.
+ * 루트 무확장자(Dockerfile/Makefile 등)는 :라인이 있을 때만 인정.
+ * 드라이브 레터 보존. 백슬래시→슬래시, 소문자.
  */
 function extractEvidenceLoc(evidence) {
   if (!evidence || typeof evidence !== 'string') return null
-  // (drive?:\)?(seg/)+name  |  (drive?:\)?name.ext1-6  — 첫 매치, 선택 :라인
-  const re = /((?:[A-Za-z]:[\/\\])?(?:[A-Za-z0-9_\-.]+[\/\\])+[A-Za-z0-9_\-.]+|(?:[A-Za-z]:[\/\\])?[A-Za-z0-9_\-]+\.[A-Za-z0-9]{1,6})(?::(\d+))?/g
-  const m = re.exec(evidence)
+  const rootNoExt = 'Dockerfile|Makefile|Gemfile|Procfile|Jenkinsfile|Vagrantfile|Rakefile|Justfile|Taskfile|Brewfile'
+  // (1순위) :라인 필수 — slash 경로 | name.ext | 알려진 루트 무확장자 (산문 read/write·error:N 보다 실제 위치 우선)
+  const withLine = new RegExp(
+    '((?:[A-Za-z]:[\\/\\\\])?(?:[A-Za-z0-9_\\-.]+[\\/\\\\])+[A-Za-z0-9_\\-.]+' +
+      '|(?:[A-Za-z]:[\\/\\\\])?[A-Za-z0-9_\\-]+\\.[A-Za-z0-9]{1,6}' +
+      '|(?:' + rootNoExt + '))' +
+      ':(\\d+)',
+    'gi',
+  )
+  let m = withLine.exec(evidence)
+  if (m) {
+    return m[1].replace(/\\/g, '/').toLowerCase() + ':' + m[2]
+  }
+  // (2순위) :라인 없음 — 슬래시+확장자 둘 다 있는 강한 경로만 (read/write·node.js 제외)
+  const strong = /((?:[A-Za-z]:[\/\\])?(?:[A-Za-z0-9_\-.]+[\/\\])+[A-Za-z0-9_\-.]+\.[A-Za-z0-9]{1,6})/g
+  m = strong.exec(evidence)
   if (!m) return null
-  const file = m[1].replace(/\\/g, '/').toLowerCase()
-  return m[2] ? `${file}:${m[2]}` : file
+  return m[1].replace(/\\/g, '/').toLowerCase()
 }
 /** 발굴 dedup + 이월 preserve 공용 키. 위치(파일:라인) 우선, 없으면 title 폴백. 라인번호 절단 금지. */
 function dedupKey(d) {
