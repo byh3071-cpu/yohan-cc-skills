@@ -77,3 +77,42 @@ test('(d) 백슬래시 정규화', () => {
   assert.equal(extractEvidenceLoc(d.evidence), 'adapters/notion_adapter.py:138')
   assert.equal(dedupKey(d), 'yohan-mcp|adapters/notion_adapter.py:138')
 })
+
+test('(e) .sh / 무확장자 Dockerfile — 같은위치 다른 title → 같은 키', () => {
+  const shA = { repo: 'yohan-mcp', title: 'shell timeout', evidence: 'scripts/run.sh:12 missing set -e' }
+  const shB = { repo: 'yohan-mcp', title: 'shell quoting', evidence: 'scripts/run.sh:12 bad quote' }
+  assert.equal(dedupKey(shA), dedupKey(shB))
+  assert.equal(dedupKey(shA), 'yohan-mcp|scripts/run.sh:12')
+
+  const dfA = { repo: 'yohan-mcp', title: 'base image pin', evidence: 'deploy/Dockerfile:3 FROM latest' }
+  const dfB = { repo: 'yohan-mcp', title: 'apt cache', evidence: 'deploy/Dockerfile:3 RUN apt' }
+  assert.equal(dedupKey(dfA), dedupKey(dfB))
+  assert.equal(dedupKey(dfA), 'yohan-mcp|deploy/dockerfile:3')
+})
+
+test('(f) 긴 경로 :10 vs :99 → 다른 키 (라인번호 보존)', () => {
+  const long = 'a'.repeat(110) + '/deep/file.py'
+  const a = { repo: 'r', title: 't', evidence: `${long}:10 oops` }
+  const b = { repo: 'r', title: 't', evidence: `${long}:99 oops` }
+  assert.notEqual(dedupKey(a), dedupKey(b))
+  assert.ok(dedupKey(a).endsWith(':10'), `expected :10 suffix, got ${dedupKey(a)}`)
+  assert.ok(dedupKey(b).endsWith(':99'), `expected :99 suffix, got ${dedupKey(b)}`)
+})
+
+test('(g) C:\\ vs D:\\ 같은 상대경로 → 다른 키 (드라이브 구분)', () => {
+  const c = { repo: 'r', title: 't', evidence: 'C:\\a\\b.py:1 err' }
+  const d = { repo: 'r', title: 't', evidence: 'D:\\a\\b.py:1 err' }
+  assert.equal(extractEvidenceLoc(c.evidence), 'c:/a/b.py:1')
+  assert.equal(extractEvidenceLoc(d.evidence), 'd:/a/b.py:1')
+  assert.notEqual(dedupKey(c), dedupKey(d))
+})
+
+test('(h) 둘째 줄 경로 추출', () => {
+  const d = {
+    repo: 'yohan-mcp',
+    title: 'buried path',
+    evidence: 'stack dump with no path on line 1\nadapters/notion_adapter.py:138 (json=...)',
+  }
+  assert.equal(extractEvidenceLoc(d.evidence), 'adapters/notion_adapter.py:138')
+  assert.equal(dedupKey(d), 'yohan-mcp|adapters/notion_adapter.py:138')
+})
