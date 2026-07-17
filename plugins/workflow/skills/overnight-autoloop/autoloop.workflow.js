@@ -8,6 +8,28 @@ export const meta = {
   ],
 }
 
+// ── testable helpers (Workflow 래퍼는 export const meta 만 허용 → 이름 있는 함수로 노출, 단위테스트가 소스에서 추출)
+// @@HELPERS_BEGIN@@
+/** evidence 첫 줄에서 파일경로(+선택 :라인) 추출. 실패 시 null. 백슬래시→슬래시, 소문자. */
+function extractEvidenceLoc(evidence) {
+  if (!evidence || typeof evidence !== 'string') return null
+  const firstLine = evidence.split(/\r?\n/, 1)[0] || ''
+  const m = firstLine.match(
+    /([A-Za-z0-9_\-.\/\\]+\.(?:py|pyi|ts|tsx|js|jsx|mjs|cjs|json|ya?ml|toml|md|css|scss|vue|rs|go))(?::(\d+))?/,
+  )
+  if (!m) return null
+  const file = m[1].replace(/\\/g, '/').toLowerCase()
+  return m[2] ? `${file}:${m[2]}` : file
+}
+/** 발굴 dedup + 이월 preserve 공용 키. 위치(파일:라인) 우선, 없으면 title 폴백. */
+function dedupKey(d) {
+  const repo = (d && d.repo) || ''
+  const loc = extractEvidenceLoc(d && d.evidence)
+  if (loc) return (repo + '|' + loc).slice(0, 120)
+  return (repo + '|title:' + String((d && d.title) || '').toLowerCase().trim()).slice(0, 120)
+}
+// @@HELPERS_END@@
+
 // ── 파라미터(args) 검증 — SILENT FALLBACK 금지 (OS 원칙 1호) ─────────
 // args = { scope:'audit'|'github'|'both', repos:[{name,path,kind:'python'|'next'}], capPRs:N,
 //          deferredPath?:'<이월 json 절대경로>', resumeDeferred?:true|false (미전달=true, 문서화된 기본값) }
@@ -116,6 +138,17 @@ const DEFERRED_SAVE_SCHEMA = {
   },
   required: ['saved', 'count', 'note'],
 }
+const SYNC_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    repo: { type: 'string', description: 'REPOS 의 name' },
+    before: { type: 'string', description: 'fetch/merge 전 short SHA 또는 상태 요약' },
+    after: { type: 'string', description: 'fetch/merge 후 short SHA 또는 상태 요약' },
+    synced: { type: 'boolean', description: '원격 FF 반영 성공 여부' },
+    note: { type: 'string', description: '스킵/실패 사유(dirty·FF 불가 등) 또는 성공 요약' },
+  },
+  required: ['repo', 'before', 'after', 'synced', 'note'],
+}
 
 // ── 배칭 헬퍼 (같은 파일 결함 그룹핑) ─────────────────────────────
 // [재발방지] 2026-07-04 밤2 run: 같은 파일(studio_adapter.py)의 같은 호출부를 고치는 결함 2건
@@ -199,6 +232,27 @@ if (DEFERRED_PATH) {
 }
 const carriedIn = RESUME_DEFERRED ? carried.length : 0 // 실제 주입된 수
 
+// Discover 직전 원격 최신화 barrier — 낡은 스냅샷으로 이미 고친 결함을 재발굴하는 것 방지.
+// 셸 없음 → agent 위임. reset --hard 금지; dirty/FF 불가면 건드리지 말고 note 보고.
+const syncResults = await parallel(
+  REPOS.map((r) => () => agent(
+    `[동기화] 레포 ${r.name} 경로=${r.path}. 셸에서 다음만 수행하라:\n` +
+    `1) cd "${r.path}"\n` +
+    `2) git rev-parse --short HEAD 로 before 기록\n` +
+    `3) git fetch origin\n` +
+    `4) 현재 브랜치명 확인 후 git merge --ff-only origin/<현재브랜치> 시도\n` +
+    `5) git rev-parse --short HEAD 로 after 기록\n` +
+    `절대 금지: git reset --hard · git checkout --force · 임의 커밋 discard.\n` +
+    `작업 트리 dirty(미커밋 변경)이거나 FF 불가(로컬 커밋/충돌)면 트리를 일절 건드리지 말고 synced=false + note 에 사유.\n` +
+    `성공 시 synced=true. repo=${r.name}.`,
+    { label: `sync:${r.name}`, phase: 'Discover', schema: SYNC_SCHEMA, effort: 'low' },
+  )),
+)
+for (const s of syncResults) {
+  if (!s) { log('[동기화] (무응답)'); continue }
+  log(`[동기화] ${s.repo}: synced=${s.synced} ${s.before}→${s.after}${s.note ? ` · ${s.note}` : ''}`)
+}
+
 const discovered = await parallel(
   DISC.map((d) => () => agent(d.prompt, { label: `audit:${d.key}`, phase: 'Discover', schema: DEFECTS_SCHEMA, effort: 'high' })),
 )
@@ -206,7 +260,6 @@ let all = []
 for (const r of discovered) if (r && Array.isArray(r.defects)) all = all.concat(r.defects)
 if (RESUME_DEFERRED && carried.length) all = carried.concat(all) // 선주입: 아래 dedup(seen)이 이월본을 우선 채택, 재발굴 중복은 버림(기존 로직 재사용)
 const SEV = { high: 0, med: 1, low: 2 }
-const dedupKey = (d) => (d.repo + '|' + (d.title || '').toLowerCase().trim()).slice(0, 120)
 const seen = new Set()
 const fixable = []
 let dropNonFixable = 0
