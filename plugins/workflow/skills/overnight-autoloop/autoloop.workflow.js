@@ -20,10 +20,10 @@ export const meta = {
 function extractEvidenceLoc(evidence) {
   if (!evidence || typeof evidence !== 'string') return null
   const rootNoExt = 'Dockerfile|Makefile|Gemfile|Procfile|Jenkinsfile|Vagrantfile|Rakefile|Justfile|Taskfile|Brewfile'
-  // (1순위) :라인 필수 — slash 경로 | name.ext | 알려진 루트 무확장자 (산문 read/write·error:N 보다 실제 위치 우선)
+  // (1순위) :라인 필수 — slash 경로 | name.ext(확장자 알파벳 시작 — v1.2·3.11 버전 제외) | 루트 무확장자
   const withLine = new RegExp(
     '((?:[A-Za-z]:[\\/\\\\])?(?:[A-Za-z0-9_\\-.]+[\\/\\\\])+[A-Za-z0-9_\\-.]+' +
-      '|(?:[A-Za-z]:[\\/\\\\])?[A-Za-z0-9_\\-]+\\.[A-Za-z0-9]{1,6}' +
+      '|(?:[A-Za-z]:[\\/\\\\])?[A-Za-z0-9_\\-]+\\.[A-Za-z][A-Za-z0-9]{0,5}' +
       '|(?:' + rootNoExt + '))' +
       ':(\\d+)',
     'gi',

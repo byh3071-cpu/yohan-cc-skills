@@ -140,3 +140,15 @@ test('(k) 루트 Dockerfile:7 다른 title → 같은 키', () => {
   assert.equal(dedupKey(a), dedupKey(b))
   assert.equal(dedupKey(a), 'r|dockerfile:7')
 })
+
+test('(l) 버전 v1.2:3 무시 → src/app.py:10', () => {
+  const d = { repo: 'r', title: 'bump', evidence: 'bumped v1.2:3; fix in src/app.py:10' }
+  assert.equal(extractEvidenceLoc(d.evidence), 'src/app.py:10')
+  assert.equal(dedupKey(d), 'r|src/app.py:10')
+})
+
+test('(m) 버전 3.11 무시 → core/db.py:5', () => {
+  const d = { repo: 'r', title: 'pyver', evidence: '3.11 supported; core/db.py:5' }
+  assert.equal(extractEvidenceLoc(d.evidence), 'core/db.py:5')
+  assert.equal(dedupKey(d), 'r|core/db.py:5')
+})
