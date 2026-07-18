@@ -8,6 +8,45 @@ export const meta = {
   ],
 }
 
+// ── testable helpers (Workflow 래퍼는 export const meta 만 허용 → 이름 있는 함수로 노출, 단위테스트가 소스에서 추출)
+// @@HELPERS_BEGIN@@
+/**
+ * evidence 전체에서 경로처럼 생긴 토큰(+선택 :라인) 추출. 실패 시 null.
+ * 우선순위: (1) ":라인" 붙은 경로형 — 실제 결함 위치는 거의 항상 :라인.
+ *           (2) 없을 때만 강한 경로(슬래시+확장자). read/write·Node.js 산문은 제외 → title 폴백.
+ * 루트 무확장자(Dockerfile/Makefile 등)는 :라인이 있을 때만 인정.
+ * 드라이브 레터 보존. 백슬래시→슬래시, 소문자.
+ */
+function extractEvidenceLoc(evidence) {
+  if (!evidence || typeof evidence !== 'string') return null
+  const rootNoExt = 'Dockerfile|Makefile|Gemfile|Procfile|Jenkinsfile|Vagrantfile|Rakefile|Justfile|Taskfile|Brewfile'
+  // (1순위) :라인 필수 — slash 경로 | name.ext(확장자 알파벳 시작 — v1.2·3.11 버전 제외) | 루트 무확장자
+  const withLine = new RegExp(
+    '((?:[A-Za-z]:[\\/\\\\])?(?:[A-Za-z0-9_\\-.]+[\\/\\\\])+[A-Za-z0-9_\\-.]+' +
+      '|(?:[A-Za-z]:[\\/\\\\])?[A-Za-z0-9_\\-]+\\.[A-Za-z][A-Za-z0-9]{0,5}' +
+      '|(?:' + rootNoExt + '))' +
+      ':(\\d+)',
+    'gi',
+  )
+  let m = withLine.exec(evidence)
+  if (m) {
+    return m[1].replace(/\\/g, '/').toLowerCase() + ':' + m[2]
+  }
+  // (2순위) :라인 없음 — 슬래시+확장자 둘 다 있는 강한 경로만 (read/write·node.js 제외)
+  const strong = /((?:[A-Za-z]:[\/\\])?(?:[A-Za-z0-9_\-.]+[\/\\])+[A-Za-z0-9_\-.]+\.[A-Za-z0-9]{1,6})/g
+  m = strong.exec(evidence)
+  if (!m) return null
+  return m[1].replace(/\\/g, '/').toLowerCase()
+}
+/** 발굴 dedup + 이월 preserve 공용 키. 위치(파일:라인) 우선, 없으면 title 폴백. 라인번호 절단 금지. */
+function dedupKey(d) {
+  const repo = (d && d.repo) || ''
+  const loc = extractEvidenceLoc(d && d.evidence)
+  if (loc) return repo + '|' + loc
+  return repo + '|title:' + String((d && d.title) || '').toLowerCase().trim()
+}
+// @@HELPERS_END@@
+
 // ── 파라미터(args) 검증 — SILENT FALLBACK 금지 (OS 원칙 1호) ─────────
 // args = { scope:'audit'|'github'|'both', repos:[{name,path,kind:'python'|'next'}], capPRs:N,
 //          deferredPath?:'<이월 json 절대경로>', resumeDeferred?:true|false (미전달=true, 문서화된 기본값) }
@@ -116,6 +155,17 @@ const DEFERRED_SAVE_SCHEMA = {
   },
   required: ['saved', 'count', 'note'],
 }
+const SYNC_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    repo: { type: 'string', description: 'REPOS 의 name' },
+    before: { type: 'string', description: 'fetch/merge 전 short SHA 또는 상태 요약' },
+    after: { type: 'string', description: 'fetch/merge 후 short SHA 또는 상태 요약' },
+    synced: { type: 'boolean', description: '원격 FF 반영 성공 여부' },
+    note: { type: 'string', description: '스킵/실패 사유(dirty·FF 불가 등) 또는 성공 요약' },
+  },
+  required: ['repo', 'before', 'after', 'synced', 'note'],
+}
 
 // ── 배칭 헬퍼 (같은 파일 결함 그룹핑) ─────────────────────────────
 // [재발방지] 2026-07-04 밤2 run: 같은 파일(studio_adapter.py)의 같은 호출부를 고치는 결함 2건
@@ -199,6 +249,37 @@ if (DEFERRED_PATH) {
 }
 const carriedIn = RESUME_DEFERRED ? carried.length : 0 // 실제 주입된 수
 
+// Discover 직전 원격 최신화 barrier — 낡은 스냅샷으로 이미 고친 결함을 재발굴하는 것 방지.
+// 셸 없음 → agent 위임. reset --hard 금지; dirty/FF 불가면 건드리지 말고 note 보고.
+const syncResults = await parallel(
+  REPOS.map((r) => () => agent(
+    `[동기화] 레포 ${r.name} 경로=${r.path}. 셸에서 다음만 수행하라:\n` +
+    `1) cd "${r.path}"\n` +
+    `2) git rev-parse --short HEAD 로 before 기록\n` +
+    `3) git fetch origin\n` +
+    `4) 현재 브랜치명 확인 후 git merge --ff-only origin/<현재브랜치> 시도\n` +
+    `5) git rev-parse --short HEAD 로 after 기록\n` +
+    `절대 금지: git reset --hard · git checkout --force · 임의 커밋 discard.\n` +
+    `작업 트리 dirty(미커밋 변경)이거나 FF 불가(로컬 커밋/충돌)면 트리를 일절 건드리지 말고 synced=false + note 에 사유.\n` +
+    `성공 시 synced=true. repo=${r.name}.`,
+    { label: `sync:${r.name}`, phase: 'Discover', schema: SYNC_SCHEMA, effort: 'low' },
+  )),
+)
+const syncFailed = []
+for (const s of syncResults) {
+  if (!s) {
+    log('[동기화 경고] (무응답) — stale 스냅샷 위험, 해당 레포 발굴 신뢰도 하락')
+    syncFailed.push('(무응답)')
+    continue
+  }
+  log(`[동기화] ${s.repo}: synced=${s.synced} ${s.before}→${s.after}${s.note ? ` · ${s.note}` : ''}`)
+  if (!s.synced) {
+    log(`[동기화 경고] ${s.repo}: synced=false — stale 스냅샷 위험 (${s.note || '사유 미상'}). dirty/FF불가 skip 유지(파괴 금지).`)
+    syncFailed.push(s.repo)
+  }
+}
+if (syncFailed.length) log(`[동기화 경고] 실패 ${syncFailed.length}레포: ${syncFailed.join(', ')}`)
+
 const discovered = await parallel(
   DISC.map((d) => () => agent(d.prompt, { label: `audit:${d.key}`, phase: 'Discover', schema: DEFECTS_SCHEMA, effort: 'high' })),
 )
@@ -206,7 +287,6 @@ let all = []
 for (const r of discovered) if (r && Array.isArray(r.defects)) all = all.concat(r.defects)
 if (RESUME_DEFERRED && carried.length) all = carried.concat(all) // 선주입: 아래 dedup(seen)이 이월본을 우선 채택, 재발굴 중복은 버림(기존 로직 재사용)
 const SEV = { high: 0, med: 1, low: 2 }
-const dedupKey = (d) => (d.repo + '|' + (d.title || '').toLowerCase().trim()).slice(0, 120)
 const seen = new Set()
 const fixable = []
 let dropNonFixable = 0
@@ -346,20 +426,22 @@ const REPORT_SCHEMA = {
   required: ['headline', 'morning_report_md'],
 }
 const report = await agent(
-  `무인 자율 결함루프 결과를 아침 보고서(두괄식 한국어 md)로 합성. 머지 결정은 사람이 아침에 한다(밤=머지 0). PR별 머지권고·근거(배칭 PR 은 포함 결함 각각 명시), park 사유, 미시도 발굴목록, 이월 상태 포함. 과장 금지.\n\n해결(1행=1그룹=1브랜치/PR):\n${JSON.stringify(results)}\n\n미시도(보류):\n${JSON.stringify(deferred)}\n\n이월: 이전 run 주입 ${carriedIn}건 · ${deferredSaveInfo ? `대기열 ${deferredSaveInfo.count}건 → ${deferredSaveInfo.path} 저장 ${deferredSaveInfo.saved ? '성공' : `실패(${deferredSaveInfo.note})`}` : '비활성(deferredPath 미전달)'}\n\n전체 발굴=${all.length}`,
+  `무인 자율 결함루프 결과를 아침 보고서(두괄식 한국어 md)로 합성. 머지 결정은 사람이 아침에 한다(밤=머지 0). PR별 머지권고·근거(배칭 PR 은 포함 결함 각각 명시), park 사유, 미시도 발굴목록, 이월 상태, **동기화 실패(stale) 레포** 포함. 과장 금지.\n\n해결(1행=1그룹=1브랜치/PR):\n${JSON.stringify(results)}\n\n미시도(보류):\n${JSON.stringify(deferred)}\n\n동기화 실패(synced=false/무응답, stale 위험): ${syncFailed.length ? syncFailed.join(', ') : '(없음)'}\n\n이월: 이전 run 주입 ${carriedIn}건 · ${deferredSaveInfo ? `대기열 ${deferredSaveInfo.count}건 → ${deferredSaveInfo.path} 저장 ${deferredSaveInfo.saved ? '성공' : `실패(${deferredSaveInfo.note})`}` : '비활성(deferredPath 미전달)'}\n\n전체 발굴=${all.length}`,
   { label: 'report', phase: 'Report', schema: REPORT_SCHEMA, effort: 'high' },
 )
 
 return {
   headline: report ? report.headline : '보고 합성 실패(report agent 무응답) — summary·results·deferred 원본으로 보고할 것',
-  report_md: report ? report.morning_report_md : `# 아침 보고 합성 실패\n\nreport agent 가 결과를 반환하지 못함. 아래 원본 데이터로 수기 보고 필요.\n\n## results\n${JSON.stringify(results, null, 2)}\n\n## deferred\n${JSON.stringify(deferred, null, 2)}`,
+  report_md: report ? report.morning_report_md : `# 아침 보고 합성 실패\n\nreport agent 가 결과를 반환하지 못함. 아래 원본 데이터로 수기 보고 필요.\n\n## results\n${JSON.stringify(results, null, 2)}\n\n## deferred\n${JSON.stringify(deferred, null, 2)}\n\n## syncFailed\n${JSON.stringify(syncFailed)}`,
   summary: {
     discovered: all.length, carriedIn, fixable: fixable.length,
     groups: groups.length, attempted: toResolve.length, // attempted = 시도한 그룹(=브랜치/PR 단위) 수
     prs: results.filter((x) => x.pushed).length,
     localOnly: results.filter((x) => x.outcome === '로컬커밋(차단/대기)').length,
     parked: results.filter((x) => x.outcome.startsWith('park')).length,
+    syncFailed, // synced=false/무응답 레포 — stale 발굴 위험, 조용히 묻히지 않음
   },
+  syncFailed, // 아침 보고·반환 최상위에도 명시
   deferredFile: deferredSaveInfo, // null=이월 비활성(deferredPath 미전달) · saved=false 면 아침에 deferred 원본으로 수동 저장
   results, deferred,
 }
