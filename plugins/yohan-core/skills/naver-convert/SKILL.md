@@ -1,74 +1,61 @@
 ---
 name: naver-convert
-description: yohanstudio.co 블로그 글(MDX)을 네이버 블로그용으로 변환·준비할 때. LLM 의미 변환→네이버 친화 HTML→CF_HTML UTF-8 클립보드→섹션 자동 캡처→발행 후 콘텐츠 허브 기록까지 반자동 파이프라인. 발행 버튼·최종 편집은 사람. "네이버 변환", "네이버 발행 준비", "네이버로 옮겨줘" 트리거.
+description: yohanstudio.co 블로그 글(MDX)을 네이버 블로그로 변환·주입·발행 준비하는 반자동 파이프라인. 웹 글 라이브 검증 통과 시 자동 선제 시작(요한 확정 2026-07-20). 원고 변환→진솔 슬롯 채팅 수집→미리보기 승인→에디터 주입(이미지 포함)→발행 패널·태그 입력까지 자동, 최종 발행 클릭만 사람. "네이버 변환", "네이버 발행 준비", "네이버로 옮겨줘" 트리거.
 ---
 
-# naver-convert — 네이버 발행 반자동 파이프라인
+# naver-convert — 네이버 발행 파이프라인 v2 (요한 표준 워크플로)
 
-콘텐츠 OS 🟡 반자동 단계 도구: **변환은 도구, 승인·발행은 사람.**
-근거: yohan-studio `docs/superpowers/specs/2026-07-13-content-os-retro-naver4.md` (수동 4회 완주 회고).
+콘텐츠 OS 🟡 반자동: **최종 발행 확정만 사람, 나머지는 자동.**
+근거: 2026-07-20 요한 인터뷰 2라운드 확정 + 수동 4회 완주 회고(`docs/superpowers/specs/2026-07-13-content-os-retro-naver4.md`).
 
-## 절차 (6단계)
+## 워크플로 8단계
 
-### 1. 입력
-- MDX slug (yohan-studio `src/content/blog/<slug>.mdx`). 라이브 발행(published:true + yohanstudio.co 200) 상태가 전제 — 네이버는 티저, 원문이 상세판이어야 함.
-- **원문 밀도 게이트**: 원문이 네이버 초안과 밀도가 비슷하면 변환 중단하고 원문 보강을 먼저 제안 (특강 후기 사례: 보강 → 배포 → 발행 순서).
+### 1. 트리거 — 자동 선제
+- **웹 MDX 글이 라이브 검증(yohanstudio.co 200 + 내용 확인)을 통과하면, 그 세션에서 즉시 자동 시작한다.** 묻지 않는다. (수동 트리거: "네이버 변환/발행 준비"도 동일 진입)
+- 발동 경계: 해당 글의 라이브 검증을 수행한 세션, 검증 통과 직후 한정.
+- **시작 전 중복 조회**: 노션 콘텐츠 허브(data source `e4fa638f-fac6-478b-9452-df4d57626673`)에서 이 slug의 네이버 발행 행 존재 여부 확인 — 이미 발행이면 중단·보고.
+- 자동 선제 대상은 **네이버만**. 나머지 채널(8채널 export)은 studio-post의 수동 절차 유지.
+- **원문 밀도 게이트**: 원문이 네이버 초안과 밀도가 비슷하면 중단하고 원문 보강 먼저 제안.
 
-### 2. LLM 의미 변환 (정규식 아님 — 직접 다시 쓴다)
-**저작 스펙 SoT = yohan-studio `skills/yohan-dual-blog/references/naver-structure.md`** (고정/유연/진솔 슬롯·문체 `-다`·이모지 팔레트·주제 변형) — 변환 전 필독. 특히 고정 슬롯(성공담 부정 1문장·고정멘트·존댓말 서명)과 **진솔 슬롯 `[여기 네 말: …]`을 비워서 남기는 것**(자동생성 금지)을 빼먹지 말 것.
-`references/naver-channel-rules.md`(포인터 요약) 적용. 핵심:
-- 문단 1~3문장 분절, 모바일 줄 읽기 우선. 첫 5줄 안에 결과·기간·문제 제시
-- 기술 용어 첫 등장 시 한국어 풀이 괄호 병기
-- 문단 사이 여백은 제로폭 공백(`​` U+200B) 단독 문단
-- 이미지 자리는 `[이미지 삽입: 설명]` 마커 (형광펜 배경으로 눈에 띄게)
-- 해시태그 5~8개, 원문 링크는 끝에 한 번
-- 분량 ~1,500자 (원문 유입 동기 보존 — 네이버를 상세판으로 만들지 않는다)
+### 2. 원고 생성 (LLM 의미 변환 — 정규식 아님)
+**저작 스펙 SoT = yohan-studio `skills/yohan-dual-blog/references/naver-structure.md`** (고정/유연/진솔 슬롯·문체 `-다`·이모지 팔레트·주제 변형) — 변환 전 필독.
+- `pnpm blog:naver -- <slug>` 초안 → naver-structure 규칙대로 다시 쓴다: 문단 1~3문장, 첫 5줄 내 결과, 용어 첫 등장 한국어 풀이, 분량 ~1,500자(네이버=티저, 원문=상세판), 해시태그 5~8개.
+- **격식 SoT = 기존 발행 글** (2026-07-19 사고로 승격): 구분선으로 섹션 분리·19px 굵은 섹션 제목·"한눈에 요약"(제품형)·해시태그 본문 제외·라벨+URL 마무리 블록 — `naver-to-html.mjs`가 자동 생성. 평문 덤프 금지.
+- **이미지**: 마커에 라이브 URL 부착 — `[이미지 삽입: 설명 | https://yohanstudio.co/images/blog/<slug>/x.png]` → 붙여넣기로 SE 이미지 컴포넌트 자동 변환(2026-07-20 실측). 수동 삽입 불필요.
+- **진솔 슬롯 = 채팅으로 수집**: `[여기 네 말: …]` 자리를 자동생성하지 말고, **요한에게 채팅으로 질문해 답을 받아 원고에 반영**한 뒤 다음 단계로. (답을 못 받으면 슬롯 플레이스홀더로 두고 미리보기 단계에서 재질문)
 
-**격식 SoT = 기존 발행 글 (2026-07-19 사고로 승격 — 밋밋한 텍스트 덤프 반려됨):**
-변환 전에 최근 발행 글 1편(`m.blog.naver.com/yohan3071` — 예: 224316171488 npm 배포 후기)의 컴포넌트 구조를 대조한다. 실측 격식:
-- 섹션(`##`)마다 **구분선**으로 분리 (hr → SE 구분선 컴포넌트 자동 매핑)
-- 섹션 제목은 **19px 굵게** (h2 태그 아님 — `<span style="font-size:19px"><b>`)
-- "한눈에 요약" 섹션이 도입 다음, 구분선 사이 독립 배치
-- 해시태그는 **본문에 없음** — 발행창 태그 입력에 등록
-- 마무리는 라벨(굵게)+URL 줄바꿈 블록 ("원문" / URL)
-→ 이 격식은 `naver-to-html.mjs`(yohan-studio `skills/yohan-dual-blog/scripts/`)가 자동 생성한다. 수동으로 격식 없는 평문 덤프 금지.
+### 3. 검토 게이트 — 미리보기 승인
+- `pnpm naver -- <slug> --step preview` (변환 + `.html` 미리보기를 기본 브라우저로 열기) → **요한 승인 후에만 주입**.
 
-### 3. 네이버 친화 HTML 생성
-SmartEditor 새니타이저 생존 검증 완료(18/18, 2026-07-13) 태그만 사용:
-`<h2> <h3> <p> <b> <strong> <em> <u> <s> <blockquote> <hr> <ul> <ol> <li> <a>` +
-`<span style="color:...">`, `<span style="background-color:...">`(형광펜), `<span style="font-size:NNpx">`
-- blockquote → 네이버 인용구 스타일, hr → 구분선으로 자동 매핑됨
-- 마크다운·코드펜스·표 금지 (표는 리스트로)
+### 4. 주입 — 실브라우저 (playwright-extension)
+- CCC는 naver 하드블록 — playwright-extension MCP(로그인 세션 브라우저)로만.
+- 주입 전 게이트 2개:
+  1. **이미지 HEAD 200**: fragment 내 모든 `<img src>` 확인 (배포 전파 지연·깨진 이미지 방지) — `--step inject`가 자동 수행.
+  2. **교체 판단**: 에디터에 기존 본문이 있으면 — **직전 주입 fragment 텍스트와 일치할 때만 자동 교체(Ctrl+A→V)**. 불일치·판단 불가 = **기본값 질문**(요한 저작물 유실 방지).
+- 클립보드는 반드시 `<slug>.fragment.html` (전체 `.html`은 미리보기 전용 — 래퍼 혼입 사고 2026-07-19). PS 5.1 `Set-Clipboard -AsHtml` 금지(PAT-004) — `scripts/Set-ClipboardHtmlUtf8.ps1` 사용.
+- 절차: 제목 타이핑(별도 컴포넌트) → 본문 클릭 → Ctrl+A → Ctrl+V 전체 교체. **SE ONE은 프로그램 DOM 셀렉션을 무시** — 부분 수정 금지, 수정은 fragment 재생성 후 전체 교체.
+- 주입 후 자체 검증: 이미지 렌더(se-image 컴포넌트)·구분선 수·플레이스홀더 잔여 0.
 
-### 4. 클립보드 적재
-```powershell
-& scripts/Set-ClipboardHtmlUtf8.ps1 -Path <slug>.fragment.html
-```
-⚠️ **PS 5.1 `Set-Clipboard -AsHtml` 직접 사용 금지** — CF_HTML을 ANSI로 넣어 한글 전멸 (PAT-004, yohan-studio `docs/patterns/`). 스크립트가 UTF-8 바이트 오프셋으로 CF_HTML을 직접 빌드한다.
-⚠️ **반드시 `.fragment.html`(순수 본문)을 적재** — 전체 `.html`(미리보기)을 넣으면 안내 바·제목 박스·하단 각주까지 에디터에 붙여넣어진다 (2026-07-19 사고). 미리보기 `.html`은 사람이 브라우저로 열어 [본문 복사] 버튼을 쓸 때만.
-- 사람: 네이버 에디터에서 Ctrl+V 한 번 → 서식 완성. 제목은 별도 입력(에디터가 SEO형으로 다듬는 것 권장)
-- 자동 주입(playwright-extension) 시: 본문 클릭 → Ctrl+A → Ctrl+V (전체 교체). SE ONE은 프로그램 DOM 셀렉션을 무시하므로 부분 수정은 캐럿 기반 키 입력만 — 문단 단위 정밀 삭제가 필요하면 부분 수정 대신 fragment 재생성 후 전체 교체가 정답.
+### 5. 발행 준비 — 태그까지 자동
+- **발행 패널 열기 버튼(1차)** 클릭 → 발행 설정창 진입.
+- ⚠️ PROVISIONAL(첫 실측 전): 태그 입력 필드 DOM을 실측한 뒤 태그 자동 입력(원고의 해시태그 목록, `#` 제외 텍스트+Enter 방식 추정) — **첫 성공 시 실측 절차를 이 절에 확정 기록할 것**.
+- 카테고리·공개 설정 확인 → **설정창 스크린샷을 요한에게 보고**.
 
-### 5. 이미지 (기본 = 자동)
+### 6. 사람 게이트 (불변)
+- 발행 버튼은 2개다: **패널 열기(1차) = 자동 허용** / **최종 확정(2차) = 사람 전용 — 자동 클릭 절대 금지** (외부 발송 불가역·PAT-003 계열).
+- 네이버 글쓰기 API 자동 발행 금지 (콘텐츠 OS 🔴 재론 안 함).
 
-**라이브 블로그 이미지는 붙여넣기로 자동 삽입된다** (2026-07-20 실측): `.md` 마커에 URL을 붙이면
-`[이미지 삽입: 설명 | https://yohanstudio.co/images/blog/<slug>/x.png]` → fragment의 `<img>`가
-SE ONE 이미지 컴포넌트로 변환됨. 수동 삽입·filechooser 자동화(CDP가 차단함) 불필요.
-원커맨드: yohan-studio에서 `pnpm naver -- <slug>` = 변환+클립보드+글쓰기 열기.
+### 7. 발행 후 — 풀 검증 + 기록
+- 요한이 URL 주면: **접속해서 이미지·레이아웃·구분선 실렌더 확인**(모바일 URL 포함).
+- 노션 콘텐츠 허브에 1행(제목/채널=네이버/포맷=블로그/상태=발행/발행일/URL/메모) + Dev Log 트리거 해당 시 기록.
+- 발행 이력 조회: `https://m.blog.naver.com/api/blogs/yohan3071/post-list?categoryNo=0&itemCount=30&page=1` (Referer 필요) — 기억 의존 금지.
 
-### 5b. 이미지 캡처 준비 (라이브에 없는 이미지만)
-라이브 블로그 섹션 캡처가 필요하면 playwright로:
-- `h2/h3` 헤딩 bounding box → 다음 헤딩 직전까지 `page.screenshot({clip})`
-- 우측 챗봇 위젯 잘리게 `x:60, width:800` 클립
-- 에디터 자동 삽입까지 할 경우: 마커 문단 클릭 → `사진 추가` 클릭 → **filechooser 이벤트 인터셉트** → setFiles → 마커 문단 triple-click 삭제. 이미지 선택 오버레이가 클릭 가로채면 Escape + 중립 문단 클릭 후 진행
-- SmartEditor는 합성 `ClipboardEvent('paste')`를 무시(isTrusted 체크) — 붙여넣기 자동화는 네이티브 키 입력만 가능
+### 8. 실패 정책
+- 자동화 스텝이 막히면 **다른 방법으로 2회까지 재시도 → 실패 시 원인 + 사람이 할 최소 대안 1줄 보고**.
+- 근본 우회를 발견하면(예: filechooser 차단 → 이미지 URL paste) 이 스킬과 변환기에 **즉시 역전파**.
 
-### 6. 발행 후 기록 (데이터 루프 — 잊으면 허브가 빈다)
-사람이 발행하고 URL을 주면:
-- 노션 **콘텐츠 허브** (data source `e4fa638f-fac6-478b-9452-df4d57626673`)에 1행: 제목(네이버 최종 제목)/채널=네이버/포맷=블로그/상태=발행/발행일/URL/메모
-- 발행 이력 확인이 필요하면 `https://m.blog.naver.com/api/blogs/yohan3071/post-list?categoryNo=0&itemCount=30&page=1` (Referer 헤더 필요) — 기억·수기 의존 금지
-- Dev Log 마일스톤 트리거 해당 시 기록
+## 참조
 
-## 사람 게이트 (불변)
-- 붙여넣기·최종 편집·제목 확정·**발행 버튼 = 사람**
-- 네이버 글쓰기 API 자동 발행 금지 (콘텐츠 OS 🔴 단계 재론 안 함 — 외부 발송 사람 게이트 원칙)
+- 채널 규칙 요약: `references/naver-channel-rules.md` (포인터 — SoT는 yohan-dual-blog)
+- 클립보드: `scripts/Set-ClipboardHtmlUtf8.ps1`
+- 원커맨드: yohan-studio `pnpm naver -- <slug> [--step preview|inject]`
