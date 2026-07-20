@@ -49,8 +49,11 @@ description: "Use when 백요한 wants to run a research question through the fu
 - `docs/yohanthinking/research/INDEX.md` 표에 1행 추가 **그리고** `docs/yohanthinking/INDEX.md` research 섹션 미러도 갱신. **둘 다** — 한쪽만 하면 반드시 drift(ADR-010).
 
 ### ⑦ HTML 시각 요약 (검수용, 커밋 안 함)
-- `workflow:visualize` Mode B(결과 보고서 HTML) 재사용. 출력 경로만 `docs/yohanthinking/research/<slug>.html`.
-- 두괄식 판정 카드 + 확신도 게이지 + 출처 표 + (있으면) 로컬 assets 이미지 임베드(상대경로). 브라우저로 열어 검수.
+- **표준 템플릿 사용**: `report-template.html`(이 스킬 폴더)을 `docs/yohanthinking/research/<slug>.html`로 복사 → `<!-- SLOT -->`만 실제 내용으로 교체. **CSS·구조는 건드리지 말 것**(검증된 디자인 유지). 매번 새로 뽑지 않는다.
+- **디자인 규칙 (AI스러움 금지)**: 그라디언트·이모지 헤더·stat 카드 grid·판정카드 남발 = AI 디폴트라 금지. 시그니처=판정문 hero(큰 타이포)+데이터 모노 정렬. 색은 신호등 red/green 말고 틸/그레이/러스트. 다크 우선+라이트+reduced-motion+모바일.
+- **카피 규칙 (이해 쉽게)**: 벤치마크·기술 용어는 풀어쓴다(예: "AA Intelligence Index"→"여러 AI를 같은 잣대로 채점하는 독립 기관 점수"). 비유 금지. 꼭 필요한 고유명사만. 두괄식(판정→3줄→왜→항목→숫자→액션→모름), 능동태.
+- (있으면) 로컬 assets 이미지 상대경로 임베드. 브라우저로 열어 검수.
+- **렌더 검증**: 로컬 HTTP 서버(`python -m http.server`) + playwright/chrome로 스크린샷 1장 확인(file:// 직접 열기는 playwright가 차단). 임시 스크린샷은 검증 후 정리.
 - `.gitignore`가 `research/*.html`을 잡으므로 `git status`에 안 떠야 정상.
 
 ### ⑧ 복리 배선 (추출 — 후보까지만)
@@ -66,8 +69,10 @@ description: "Use when 백요한 wants to run a research question through the fu
 - 자기 행만 업데이트: 상태 `완료(검수대기)` · 요약 3줄 · brain 경로(+GitHub 링크) · 확신도 · 완료일.
 - **금지:** 스키마 변경·select 옵션 추가·삭제·타 행 수정(D6). 머지 후 사람이 `완료` 확정.
 
-### ⑪ 계측 1행
-- 노션 "바이브코딩 워크플로 계측" DB에 1행: 수정지시 수 · 검수 소요분 · 승격 후보 수 · 미디어 처리 성공/실패. A단계 졸업 판정(연속 2회 수정지시≤1) 근거.
+### ⑪ 계측 1행 (사람 검수 후)
+- **타이밍**: 파이프라인 실행 직후가 아니라 **사용자 검수 피드백 후** 기록한다 — 핵심 지표인 "수정지시 수"가 검수 전엔 미확정(회차① 교훈).
+- 노션 "바이브코딩 워크플로 계측" DB(`03a2cd6a`)에 1행: 수정지시 수 · 검수 소요분 · 승격 후보 수 · 결과(성공/부분성공/실패). A단계 졸업 판정(연속 2회 수정지시≤1) 근거.
+- **주의**: 이 DB "프로젝트" select에 리서치용 옵션이 없다 → 옵션 추가는 파괴적(전역 규칙)이라 **사람 승인 필요**. 승인 전엔 세션/하네스 text 필드로 우회 기록.
 
 ## Quick Reference
 | 항목 | 값 |
@@ -90,6 +95,8 @@ description: "Use when 백요한 wants to run a research question through the fu
 - 승격을 AI가 확정 → 후보까지만, 확정은 wiki-ops 사람.
 - 추출 결과 침묵 → "키워드 N·트리플 N·승격후보 N" 한 줄 보고 필수.
 - PR 머지까지 자동 → 금지. PR까지만, 머지는 사람.
+- HTML 매번 새로 디자인 → 금지. `report-template.html` 복사·SLOT 교체만(회차① 교훈: AI 디폴트 디자인·어려운 벤치용어 카피 방지).
+- 계측을 파이프라인 끝에 즉시 기록 → 수정지시 미확정 상태. 검수 후 기록(⑪).
 
 ## 관련
 - 규약 SoT: `yohan-brain/docs/adr/ADR-010-research-pipeline.md`
