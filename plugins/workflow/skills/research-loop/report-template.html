@@ -1,161 +1,193 @@
 <!DOCTYPE html>
 <!--
   research-loop 리포트 검수용 HTML 표준 템플릿 (ADR-010 ⑦)
-  검증: 2026-07-20 kimi-k3-vs-fable-5 회차①에서 렌더 확인.
+  검증: 2026-07-20 kimi-k3-vs-fable-5 회차①. 요한 피드백 반복 반영(밋밋→전달감→와이드).
 
-  사용법: 이 파일을 리포트 slug로 복사(docs/yohanthinking/research/<slug>.html, gitignore됨) →
-          <!-- SLOT --> 부분만 실제 내용으로 교체. CSS·구조는 건드리지 말 것.
+  사용법: 이 파일을 <slug>.html로 복사(docs/yohanthinking/research/, gitignore됨) →
+          <!-- SLOT --> 부분만 교체. CSS·구조는 유지.
 
-  ── 디자인 규칙 (AI스러움 제거) ──
-  · 금지: 그라디언트 accent, 이모지 헤더, stat 카드 grid 4개, border-left 판정카드 남발 → 전부 "AI 디폴트"
-  · 시그니처: 판정문 hero(큰 타이포) + 데이터는 전부 모노폰트 정렬(측정=mono, 해석=sans 구분)
-  · 색: 신호등 red/green 금지. win=틸, challenger=중립그레이, warn=러스트 극소량(경고에만)
-  · 다크 우선 + 라이트 대응 + reduced-motion 존중 + 모바일 반응형
+  ── 전달감 규칙 (요한 회차① 핵심 교훈) ──
+  · 눈이 멈출 "큰 것"을 만들 것: 가장 중요한 수치 대비를 .score 스코어라인으로 대형화(승패 즉각).
+  · 핵심만 크고 진하게, 나머지는 조용히. 색(win/warn)은 핵심에만 몰아준다.
+  · 위계 폭을 넓게: 대형 숫자(3.4rem) ~ 메타(0.76rem)까지.
+  · 비교는 막대로 시각화(.bar, .mini) — 눈으로 훑어 읽게 하지 말 것.
+  · 폭은 max-width 840(데스크탑 양옆 여백 최소). 표 근거가 한 줄에 담기게.
 
-  ── 카피 규칙 (이해하기 쉽게) ──
-  · 벤치마크·기술 용어는 풀어쓴다: "AA Intelligence Index" → "여러 AI를 같은 잣대로 채점하는 독립 기관 점수(괄호에 원명)"
-  · 비유 금지. 꼭 필요한 고유명사(모델명 등)만 남기고 나머지는 일상어
-  · 두괄식: hero=판정 한 문장 → 세 줄 요약 → 왜(대화체) → 항목판정 → 숫자 → 액션 → 모르는 것
-  · 능동태, "무엇을 하면 되나"를 사람 입장에서
+  ── 디자인 규칙 (AI스러움 금지) ──
+  · 금지: 그라디언트, 이모지 헤더, 장식용 stat 카드 grid. 노션 문서 톤 + 편집디자인 완성도.
+  · 색: 신호등 red/green 말고 win=진초록·warn=러스트, 나머지 흑/회색. 다크 우선+라이트+reduced-motion+모바일.
+  · 레퍼런스·안티패턴: references/design-references.md (Anthropic·Linear·AA·Stripe Press + 웜크림+serif=AI디폴트 함정).
+
+  ── 카피 규칙 (이해 쉽게 + 정보전달 기법) ──
+  · 벤치·기술 용어 풀어쓰기(예: "AA Intelligence Index"→"여러 AI를 같은 잣대로 채점하는 독립 기관 점수"). 비유 금지.
+  · 두괄식(BLUF) + 파인만(쉽게). 피라미드: 근거를 유형별로 그룹. 토픽센텐스: 각 덩어리·불릿 첫머리에 요지(.lead / li 첫 <b>).
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><!-- SLOT: 제목 — 질문형 짧게, 예: "Kimi K3 vs Fable 5 — 갈아탈까?" --></title>
+<title><!-- SLOT: 제목 (짧게) --></title>
 <style>
   :root {
-    --bg:#141518; --surface:#1c1e22; --surface2:#22252a;
-    --ink:#eceae4; --muted:#9b988f; --faint:#6f6d66; --line:#2c2f34;
-    --win:#54a892; --challenger:#8b95a1; --warn:#d0694c;
+    --bg:#ffffff; --text:#2c2b28; --muted:#78766f; --faint:#adaba3;
+    --line:#ececea; --line2:#dedcd7; --th:#f7f6f3; --band:#f4f6f5;
+    --win:#1f8a5b; --k:#9a978f; --warn:#c05f2c;
     --sans:-apple-system,"Segoe UI","Malgun Gothic",Roboto,sans-serif;
-    --mono:"SF Mono","Cascadia Code","Consolas",ui-monospace,monospace;
+    --mono:"SF Mono","Consolas",ui-monospace,monospace;
   }
-  @media (prefers-color-scheme: light) {
-    :root { --bg:#f5f4f0; --surface:#fff; --surface2:#faf9f6;
-      --ink:#1f1e1b; --muted:#6b6862; --faint:#94918a; --line:#e4e2dc;
-      --win:#1f6b57; --challenger:#5c6873; --warn:#b0472e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#181818; --text:#e4e3df; --muted:#9b9a94; --faint:#63625d;
+      --line:#2a2a2a; --line2:#353532; --th:#222221; --band:#1e211f;
+      --win:#3fb47f; --k:#87847c; --warn:#d17a49; }
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  html { scroll-behavior:smooth; }
-  body { background:var(--bg); color:var(--ink); font-family:var(--sans);
-    line-height:1.65; -webkit-font-smoothing:antialiased; font-size:17px; padding:0 1.25rem; }
-  .page { max-width:680px; margin:0 auto; padding:5.5rem 0 6rem; }
-  .eyebrow { font-family:var(--mono); font-size:.75rem; letter-spacing:.08em;
-    text-transform:uppercase; color:var(--faint); margin-bottom:1.5rem;
-    display:flex; gap:.6rem; align-items:center; }
-  .eyebrow::after { content:""; flex:1; height:1px; background:var(--line); }
-  .verdict { font-size:clamp(2.4rem,7.5vw,3.8rem); font-weight:800; letter-spacing:-.03em;
-    line-height:1.08; margin-bottom:1.5rem; animation:rise .7s cubic-bezier(.2,.7,.3,1) both; }
-  .verdict .mark { color:var(--warn); }
-  .lede { font-size:1.15rem; color:var(--muted); max-width:34ch;
-    animation:rise .7s .1s cubic-bezier(.2,.7,.3,1) both; }
-  @keyframes rise { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
-  @media (prefers-reduced-motion:reduce){ .verdict,.lede{animation:none} }
-  section { margin-top:4.75rem; }
-  h2 { font-size:.8rem; font-family:var(--mono); letter-spacing:.05em; text-transform:uppercase;
-    color:var(--faint); margin-bottom:1.1rem; font-weight:600; }
-  p + p { margin-top:1rem; }
-  .plain p { color:var(--ink); }
-  .plain b { font-weight:700; }
-  em { font-style:normal; color:var(--win); font-weight:600; }
-  .warn-t { color:var(--warn); font-weight:600; font-style:normal; }
-  .three { list-style:none; }
-  .three li { display:flex; gap:1rem; padding:1.1rem 0; border-top:1px solid var(--line); align-items:baseline; }
-  .three li:last-child { border-bottom:1px solid var(--line); }
-  .three .n { font-family:var(--mono); font-size:.8rem; color:var(--faint); flex-shrink:0; width:1.5rem; }
-  .three .t { font-size:1.05rem; }
-  .three .t b { font-weight:700; }
-  .rows { display:flex; flex-direction:column; }
-  .row { padding:1.15rem 0; border-top:1px solid var(--line); }
-  .row:last-child { border-bottom:1px solid var(--line); }
-  .row .q { font-size:.92rem; color:var(--muted); margin-bottom:.35rem; }
-  .row .a { font-size:1.08rem; font-weight:700; display:flex; gap:.55rem; align-items:baseline; }
-  .row .a .dot { width:.5rem; height:.5rem; border-radius:50%; flex-shrink:0; transform:translateY(-.05rem); }
-  .dot.no { background:var(--warn); } .dot.some { background:var(--challenger); } .dot.yes { background:var(--win); }
-  .row .why { font-size:.9rem; color:var(--muted); margin-top:.3rem; }
-  .data { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:1.5rem; }
-  .datarow { display:flex; flex-wrap:wrap; align-items:baseline; gap:.35rem 2.25rem;
-    padding:.85rem 0; border-bottom:1px solid var(--line); }
-  .datarow:last-child { border-bottom:none; } .datarow:first-child { padding-top:0; }
-  .datarow .lab { font-size:.9rem; color:var(--muted); flex-basis:100%; margin-bottom:.2rem; }
-  .num { font-family:var(--mono); font-size:1.15rem; font-weight:600; font-variant-numeric:tabular-nums; min-width:5.5rem; }
-  .num small { font-family:var(--sans); font-size:.72rem; color:var(--faint); display:block; font-weight:400; margin-top:.1rem; }
-  .num.k { color:var(--challenger); } .num.f { color:var(--win); }
-  .acts { display:flex; flex-direction:column; gap:.6rem; }
-  .act { background:var(--surface); border:1px solid var(--line); border-radius:12px;
-    padding:1rem 1.15rem; display:flex; gap:.9rem; align-items:baseline; }
-  .act .verb { font-family:var(--mono); font-size:.72rem; font-weight:600; padding:.2rem .5rem;
-    border-radius:6px; flex-shrink:0; letter-spacing:.03em; }
-  .verb.keep { color:var(--win); background:color-mix(in srgb,var(--win) 15%,transparent); }
-  .verb.try { color:var(--challenger); background:color-mix(in srgb,var(--challenger) 18%,transparent); }
-  .act .txt { font-size:.98rem; } .act .txt b { font-weight:700; } .act .txt span { color:var(--muted); font-size:.9rem; }
-  .caveat { background:var(--surface2); border:1px solid var(--line); border-left:3px solid var(--warn);
-    border-radius:10px; padding:1.1rem 1.25rem; font-size:.92rem; color:var(--muted); }
-  .caveat b { color:var(--ink); font-weight:600; }
-  footer { margin-top:4rem; padding-top:1.5rem; border-top:1px solid var(--line);
-    font-family:var(--mono); font-size:.75rem; color:var(--faint); line-height:1.8; }
-  footer code { color:var(--muted); }
-  a { color:var(--win); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--win) 40%,transparent); }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans);
+    line-height:1.7; -webkit-font-smoothing:antialiased; font-size:16px; padding:4rem 1.5rem 6rem; }
+  .doc { max-width:840px; margin:0 auto; }
+
+  .meta { font-size:.76rem; letter-spacing:.06em; color:var(--faint); text-transform:uppercase; margin-bottom:1rem; }
+  h1 { font-size:2.1rem; font-weight:780; letter-spacing:-.025em; line-height:1.22; margin-bottom:.7rem; }
+  h1 .em { color:var(--warn); }
+  .standfirst { font-size:1.05rem; color:var(--muted); line-height:1.55; margin-bottom:2.75rem; }
+
+  /* 스코어라인 — 최상단 임팩트. 가장 중요한 수치 대비 1개 */
+  .score { background:var(--band); border-radius:12px; padding:1.75rem 1.75rem 1.5rem; margin-bottom:1rem; }
+  .score .cap { font-size:.78rem; letter-spacing:.03em; color:var(--muted); margin-bottom:1.1rem; }
+  .score .cap b { color:var(--text); font-weight:650; }
+  .score .row { display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:1.2rem; }
+  .score .side.r { text-align:right; }
+  .score .name { font-size:.85rem; color:var(--muted); margin-bottom:.15rem; }
+  .score .name.wname { color:var(--win); font-weight:650; }
+  .score .val { font-size:3.4rem; font-weight:800; line-height:1; letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums; color:var(--k); }
+  .score .val.w { color:var(--win); }
+  .score .vs { font-size:1rem; color:var(--faint); padding-bottom:.7rem; font-weight:600; }
+  .score .bars { display:grid; grid-template-columns:1fr auto 1fr; gap:1.2rem; margin-top:.9rem; }
+  .score .bar { height:6px; border-radius:3px; background:var(--line2); overflow:hidden; }
+  .score .bar > span { display:block; height:100%; border-radius:3px; }
+  .score .bar.kb > span { background:var(--k); }
+  .score .bar.fb > span { background:var(--win); }
+  .score .bspacer { width:2.5rem; }
+
+  /* 핵심 팩트 3개 */
+  .facts { display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; margin-bottom:3rem; }
+  .fact .fl { font-size:.74rem; letter-spacing:.02em; color:var(--faint); text-transform:uppercase; margin-bottom:.35rem; }
+  .fact .fv { font-size:1.25rem; font-weight:700; line-height:1.25; letter-spacing:-.01em; }
+  .fact .fv .u { font-size:.8rem; font-weight:400; color:var(--muted); display:block; margin-top:.2rem; }
+  .fact .fv.win { color:var(--win); }
+  @media (max-width:540px){ .facts{grid-template-columns:1fr; gap:.4rem} }
+
+  h2 { font-size:.8rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:3rem 0 .6rem; }
+  p { margin:.8rem 0; }
+  p.lead { font-weight:700; color:var(--text); margin:.2rem 0 1rem; font-size:1.1rem; letter-spacing:-.01em; }
+  b { font-weight:650; }
+  .win { color:var(--win); font-weight:650; } .warn { color:var(--warn); font-weight:650; }
+  ul { list-style:none; margin:1rem 0; }
+  li { position:relative; padding-left:1.15rem; margin:.85rem 0; }
+  li::before { content:""; position:absolute; left:.1rem; top:.72em; width:5px; height:5px; border-radius:50%; background:var(--faint); }
+  li b:first-child { color:var(--text); }
+
+  table { width:100%; border-collapse:collapse; margin:.4rem 0; font-size:.93rem; }
+  td,th { text-align:left; padding:.8rem .3rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  thead th { border-bottom:1.5px solid var(--line2); color:var(--faint); font-weight:600; font-size:.74rem; letter-spacing:.05em; text-transform:uppercase; }
+  tbody tr:last-child td { border-bottom:none; }
+  .verdict-t td:first-child { width:42%; }
+  .verdict-t .ans { font-weight:700; white-space:nowrap; font-size:.98rem; }
+  .ans.no { color:var(--warn); } .ans.some { color:var(--text); }
+  .verdict-t td:last-child { color:var(--muted); font-size:.87rem; }
+
+  /* 숫자표 + 미니막대 */
+  .num-t td { padding:.7rem .3rem; }
+  .num-t td:first-child { width:38%; color:var(--text); }
+  .num-t .cellbar { display:flex; align-items:center; gap:.6rem; }
+  .num-t .mini { flex:1; height:5px; border-radius:3px; background:var(--line); overflow:hidden; max-width:120px; }
+  .num-t .mini > span { display:block; height:100%; border-radius:3px; background:var(--k); }
+  .num-t .mini.w > span { background:var(--win); }
+  .num-t .figure { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; font-size:.95rem; min-width:4.2rem; text-align:right; }
+  .num-t .figure.win { color:var(--win); font-weight:650; }
+  .num-t .rk { color:var(--faint); font-family:var(--sans); font-size:.8rem; }
+
+  .act-t td:first-child { width:30%; }
+  .act-t td:nth-child(2) { font-weight:700; width:24%; }
+  .act-t .keep { color:var(--win); }
+  .act-t td:last-child { color:var(--muted); font-size:.87rem; }
+
+  .note { background:var(--th); border-radius:10px; padding:1.1rem 1.25rem; margin:1rem 0; color:var(--muted); font-size:.92rem; }
+  .note b { color:var(--text); }
+
+  footer { margin-top:4rem; padding-top:1.25rem; border-top:1px solid var(--line); font-size:.75rem; color:var(--faint); line-height:1.75; }
+  footer code { font-family:var(--mono); }
 </style>
 </head>
 <body>
-<main class="page">
+<div class="doc">
 
-  <div class="eyebrow"><!-- SLOT: 리서치 종류 · 날짜 --></div>
+  <div class="meta"><!-- SLOT: 리서치 종류 · 날짜 --></div>
+  <h1><!-- SLOT: 판정 한 문장. 핵심어만 <span class="em"> --></h1>
+  <p class="standfirst"><!-- SLOT: 판정 부연 1~2문장 --></p>
 
-  <h1 class="verdict"><!-- SLOT: 판정 한 문장. 핵심 단어만 <span class="mark">강조</span> --></h1>
-  <p class="lede"><!-- SLOT: 판정 부연 1~2문장(왜 그렇게 봤는지 요지) --></p>
-
-  <section>
-    <h2>세 줄 요약</h2>
-    <ul class="three">
-      <!-- SLOT: <li><span class="n">01</span><span class="t">핵심 발견 한 줄, <b>결정적 단어 강조</b></span></li> × 3 -->
-    </ul>
-  </section>
-
-  <section class="plain">
-    <h2>왜 그렇게 봤나</h2>
-    <!-- SLOT: 대화체 문단 2~4개. 전문용어는 풀어쓰고 괄호에 원명. <em>지지근거</em> / <span class="warn-t">반대·경고</span> -->
-  </section>
-
-  <section>
-    <h2>항목별 판정</h2>
-    <div class="rows">
-      <!-- SLOT: 질문–답–이유 블록. dot 클래스: no(부정)·some(조건부)·yes(긍정)
-        <div class="row"><div class="q">질문?</div>
-          <div class="a"><span class="dot no"></span>답</div>
-          <div class="why">근거 한 줄</div></div>  -->
+  <!-- 스코어라인: 가장 중요한 수치 대비 1개. 승자에 .w. 막대 width는 값 비율(예 57/60=95%) -->
+  <div class="score">
+    <div class="cap"><!-- SLOT: 지표명 <b>강조</b> · 방향(높을수록 좋음 등) --></div>
+    <div class="row">
+      <div class="side"><div class="name">A</div><div class="val">값</div></div>
+      <div class="vs">&lt;</div>
+      <div class="side r"><div class="name wname">B</div><div class="val w">값</div></div>
     </div>
-  </section>
-
-  <section>
-    <h2>숫자로 보면</h2>
-    <div class="data">
-      <!-- SLOT: 각 지표를 라벨(무슨 값인지·방향 명시) + 두 값(num.k / num.f). 이긴 쪽에 ✓
-        small에 순위·평균 대비 맥락을 붙이면 값이 즉시 읽힌다(예: "1위"·"평균 31").
-        <div class="datarow"><div class="lab">지표명 <span style="color:var(--faint)">(높을수록/낮을수록 좋음)</span></div>
-          <div class="num k">값<small>A · 3위</small></div><div class="num f">값<small>B · 1위 ✓</small></div></div>  -->
+    <div class="bars">
+      <div class="bar kb"><span style="width:95%"></span></div>
+      <div class="bspacer"></div>
+      <div class="bar fb"><span style="width:100%"></span></div>
     </div>
-  </section>
+  </div>
 
-  <section>
-    <h2>그래서 뭘 하면 되나</h2>
-    <div class="acts">
-      <!-- SLOT: 사람 입장 행동. verb 클래스: keep(유지)·try(시도)
-        <div class="act"><span class="verb keep">그대로</span><span class="txt"><b>행동.</b> <span>이유</span></span></div>  -->
-    </div>
-  </section>
+  <!-- 핵심 팩트 3개: 가장 잘 팔리는 사실. 유리한 값에 .win -->
+  <div class="facts">
+    <div class="fact"><div class="fl">라벨</div><div class="fv win">큰 값<span class="u">부연</span></div></div>
+    <div class="fact"><div class="fl">라벨</div><div class="fv">큰 값<span class="u">부연</span></div></div>
+    <div class="fact"><div class="fl">라벨</div><div class="fv">큰 값<span class="u">부연</span></div></div>
+  </div>
 
-  <section>
-    <h2>아직 모르는 것</h2>
-    <div class="caveat"><p><!-- SLOT: 미검증 항목 + 재조사 시점(valid_until) --></p></div>
-  </section>
+  <h2>왜 그렇게 봤나</h2>
+  <p class="lead"><!-- SLOT: 근거 전체를 한 줄로 요약(토픽센텐스) --></p>
+  <ul>
+    <!-- SLOT: <li><b>불릿 요지.</b> 상세…</li> × 근거 유형별(피라미드). 지지=<em class="win>, 반대=<span class="warn"> -->
+  </ul>
 
-  <footer>
-    <!-- SLOT: 정본 경로 · 방법(에이전트·출처·검증 수) · "검수용, 커밋 안 됨" -->
-  </footer>
+  <h2>항목별 판정</h2>
+  <p class="lead"><!-- SLOT: 판정들이 수렴하는 한 줄 --></p>
+  <table class="verdict-t">
+    <thead><tr><th>질문</th><th>답</th><th>근거</th></tr></thead>
+    <tbody>
+      <!-- SLOT: <tr><td>질문?</td><td class="ans no">답</td><td>근거</td></tr>  ans: no/some -->
+    </tbody>
+  </table>
 
-</main>
+  <h2>숫자로 보면</h2>
+  <p class="lead"><!-- SLOT: 숫자 대비 한 줄 요약 --></p>
+  <table class="num-t">
+    <thead><tr><th>항목</th><th>A</th><th>B</th></tr></thead>
+    <tbody>
+      <!-- SLOT: 각 행 = 항목 + 두 셀(.cellbar: mini 막대 + figure). 이긴 쪽 mini.w + figure.win.
+        <tr><td>지표 <span class="rk">(방향)</span></td>
+          <td><div class="cellbar"><div class="mini"><span style="width:95%"></span></div><span class="figure">값</span></div></td>
+          <td><div class="cellbar"><div class="mini w"><span style="width:100%"></span></div><span class="figure win">값</span></div></td></tr>  -->
+    </tbody>
+  </table>
+
+  <h2>그래서 뭘 하면 되나</h2>
+  <table class="act-t">
+    <thead><tr><th>대상</th><th>결정</th><th>이유</th></tr></thead>
+    <tbody>
+      <!-- SLOT: <tr><td>대상</td><td class="keep">결정</td><td>이유</td></tr>  유지 결정에 .keep -->
+    </tbody>
+  </table>
+
+  <h2>아직 모르는 것</h2>
+  <div class="note"><!-- SLOT: 미검증 + 재조사 시점(valid_until) --></div>
+
+  <footer><!-- SLOT: 정본 경로 · 방법(에이전트·출처·검증) · "검수용, 커밋 안 됨" --></footer>
+
+</div>
 </body>
 </html>

@@ -50,10 +50,11 @@ description: "Use when 백요한 wants to run a research question through the fu
 
 ### ⑦ HTML 시각 요약 (검수용, 커밋 안 함)
 - **표준 템플릿 사용**: `report-template.html`(이 스킬 폴더)을 `docs/yohanthinking/research/<slug>.html`로 복사 → `<!-- SLOT -->`만 실제 내용으로 교체. **CSS·구조는 건드리지 말 것**(검증된 디자인 유지). 매번 새로 뽑지 않는다.
-- **디자인 규칙 (AI스러움 금지)**: 그라디언트·이모지 헤더·stat 카드 grid·판정카드 남발 = AI 디폴트라 금지. 시그니처=판정문 hero(큰 타이포)+데이터 모노 정렬. 색은 신호등 red/green 말고 틸/그레이/러스트. 다크 우선+라이트+reduced-motion+모바일. **레퍼런스·벤치마크·다음 개선 후보는 `references/design-references.md` 참고**(Anthropic·Linear·AA·Stripe Press 실측 + 웜크림+serif=AI디폴트 회귀 함정).
-- **카피 규칙 (이해 쉽게)**: 벤치마크·기술 용어는 풀어쓴다(예: "AA Intelligence Index"→"여러 AI를 같은 잣대로 채점하는 독립 기관 점수"). 비유 금지. 꼭 필요한 고유명사만. 두괄식(판정→3줄→왜→항목→숫자→액션→모름), 능동태.
+- **전달감 규칙 (요한 회차① 핵심 교훈)**: 눈이 멈출 "큰 것"을 만들 것 — 가장 중요한 수치 대비를 `.score` 스코어라인으로 대형화(승패 즉각), 핵심 팩트 3개는 `.facts`로 크게. **핵심만 크고 진하게, 나머지는 조용히**(색은 핵심에만). 비교는 막대(`.bar`·`.mini`)로 시각화 — 눈으로 훑어 읽게 하지 말 것. 위계 폭 넓게(3.4rem~0.76rem). 폭 `max-width:840`(양옆 여백 최소).
+- **디자인 규칙 (AI스러움 금지)**: 그라디언트·이모지 헤더·장식용 stat 카드 grid 금지. 노션 문서 톤 + 편집디자인 완성도. 색은 신호등 red/green 말고 win=진초록·warn=러스트. 다크 우선+라이트+reduced-motion+모바일. **레퍼런스·안티패턴은 `references/design-references.md`**(Anthropic·Linear·AA·Stripe Press + 웜크림+serif=AI디폴트 함정).
+- **카피 규칙 (이해 쉽게 + 정보전달 기법)**: 벤치·기술 용어 풀어쓰기(예: "AA Intelligence Index"→"여러 AI를 같은 잣대로 채점하는 독립 기관 점수"). 비유 금지. 두괄식(BLUF)+파인만(쉽게). **피라미드**: 근거를 유형별로 그룹. **토픽센텐스**: 각 덩어리·불릿 첫머리에 요지(`.lead`/li 첫 `<b>`) — 볼드만 훑어도 논리가 잡히게.
 - (있으면) 로컬 assets 이미지 상대경로 임베드. 브라우저로 열어 검수.
-- **렌더 검증**: 로컬 HTTP 서버(`python -m http.server`) + playwright/chrome로 스크린샷 1장 확인(file:// 직접 열기는 playwright가 차단). 임시 스크린샷은 검증 후 정리.
+- **렌더 검증**: 로컬 HTTP 서버 + playwright로 스크린샷 확인(file:// 직접 열기는 playwright 차단). ⚠️ **백그라운드 셸은 PATH에 python이 없어 `python -m http.server`가 exit 127로 죽는다** → `where python`으로 절대경로 확인 후 `"/c/Program Files/Python311/python.exe" -m http.server <포트>`로 기동. 확인 후 서버 kill(포트 기준). 임시 스크린샷 정리(삭제 정책에 막히면 사람에게 정리 요청).
 - `.gitignore`가 `research/*.html`을 잡으므로 `git status`에 안 떠야 정상.
 
 ### ⑧ 복리 배선 (추출 — 후보까지만)
