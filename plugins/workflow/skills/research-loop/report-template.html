@@ -40,19 +40,19 @@
   html { scroll-behavior:smooth; }
   body { background:var(--bg); color:var(--ink); font-family:var(--sans);
     line-height:1.65; -webkit-font-smoothing:antialiased; font-size:17px; padding:0 1.25rem; }
-  .page { max-width:680px; margin:0 auto; padding:4rem 0 5rem; }
+  .page { max-width:680px; margin:0 auto; padding:5.5rem 0 6rem; }
   .eyebrow { font-family:var(--mono); font-size:.75rem; letter-spacing:.08em;
     text-transform:uppercase; color:var(--faint); margin-bottom:1.5rem;
     display:flex; gap:.6rem; align-items:center; }
   .eyebrow::after { content:""; flex:1; height:1px; background:var(--line); }
-  .verdict { font-size:clamp(2rem,6vw,3rem); font-weight:800; letter-spacing:-.025em;
-    line-height:1.1; margin-bottom:1.25rem; animation:rise .7s cubic-bezier(.2,.7,.3,1) both; }
+  .verdict { font-size:clamp(2.4rem,7.5vw,3.8rem); font-weight:800; letter-spacing:-.03em;
+    line-height:1.08; margin-bottom:1.5rem; animation:rise .7s cubic-bezier(.2,.7,.3,1) both; }
   .verdict .mark { color:var(--warn); }
   .lede { font-size:1.15rem; color:var(--muted); max-width:34ch;
     animation:rise .7s .1s cubic-bezier(.2,.7,.3,1) both; }
   @keyframes rise { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
   @media (prefers-reduced-motion:reduce){ .verdict,.lede{animation:none} }
-  section { margin-top:3.5rem; }
+  section { margin-top:4.75rem; }
   h2 { font-size:.8rem; font-family:var(--mono); letter-spacing:.05em; text-transform:uppercase;
     color:var(--faint); margin-bottom:1.1rem; font-weight:600; }
   p + p { margin-top:1rem; }
@@ -133,8 +133,9 @@
     <h2>숫자로 보면</h2>
     <div class="data">
       <!-- SLOT: 각 지표를 라벨(무슨 값인지·방향 명시) + 두 값(num.k / num.f). 이긴 쪽에 ✓
+        small에 순위·평균 대비 맥락을 붙이면 값이 즉시 읽힌다(예: "1위"·"평균 31").
         <div class="datarow"><div class="lab">지표명 <span style="color:var(--faint)">(높을수록/낮을수록 좋음)</span></div>
-          <div class="num k">값<small>A</small></div><div class="num f">값<small>B ✓</small></div></div>  -->
+          <div class="num k">값<small>A · 3위</small></div><div class="num f">값<small>B · 1위 ✓</small></div></div>  -->
     </div>
   </section>
 
