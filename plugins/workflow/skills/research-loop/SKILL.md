@@ -50,7 +50,7 @@ description: "Use when 백요한 wants to run a research question through the fu
 
 ### ⑦ HTML 시각 요약 (검수용, 커밋 안 함)
 - **표준 템플릿 사용**: `report-template.html`(이 스킬 폴더)을 `docs/yohanthinking/research/<slug>.html`로 복사 → `<!-- SLOT -->`만 실제 내용으로 교체. **CSS·구조는 건드리지 말 것**(검증된 디자인 유지). 매번 새로 뽑지 않는다.
-- **디자인 규칙 (AI스러움 금지)**: 그라디언트·이모지 헤더·stat 카드 grid·판정카드 남발 = AI 디폴트라 금지. 시그니처=판정문 hero(큰 타이포)+데이터 모노 정렬. 색은 신호등 red/green 말고 틸/그레이/러스트. 다크 우선+라이트+reduced-motion+모바일.
+- **디자인 규칙 (AI스러움 금지)**: 그라디언트·이모지 헤더·stat 카드 grid·판정카드 남발 = AI 디폴트라 금지. 시그니처=판정문 hero(큰 타이포)+데이터 모노 정렬. 색은 신호등 red/green 말고 틸/그레이/러스트. 다크 우선+라이트+reduced-motion+모바일. **레퍼런스·벤치마크·다음 개선 후보는 `references/design-references.md` 참고**(Anthropic·Linear·AA·Stripe Press 실측 + 웜크림+serif=AI디폴트 회귀 함정).
 - **카피 규칙 (이해 쉽게)**: 벤치마크·기술 용어는 풀어쓴다(예: "AA Intelligence Index"→"여러 AI를 같은 잣대로 채점하는 독립 기관 점수"). 비유 금지. 꼭 필요한 고유명사만. 두괄식(판정→3줄→왜→항목→숫자→액션→모름), 능동태.
 - (있으면) 로컬 assets 이미지 상대경로 임베드. 브라우저로 열어 검수.
 - **렌더 검증**: 로컬 HTTP 서버(`python -m http.server`) + playwright/chrome로 스크린샷 1장 확인(file:// 직접 열기는 playwright가 차단). 임시 스크린샷은 검증 후 정리.

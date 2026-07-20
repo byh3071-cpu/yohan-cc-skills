@@ -1,0 +1,35 @@
+# 리서치 리포트 HTML — 디자인 레퍼런스
+
+> research-loop ⑦ HTML(`report-template.html`) 개선·벤치마킹용 참고 자산.
+> 2026-07-20 실제 캡처(playwright)로 수집. 요한 피드백("짜친다")에서 출발.
+
+## 벤치마크 대상 (실제 확인)
+
+| 사이트 | 성격 | 훔쳐올 것 |
+|---|---|---|
+| [Anthropic Research](https://www.anthropic.com/research) | AI 리서치 발표 (우리와 가장 유사) | **sans 헤드라인 + serif 리드 페어링** · 넓은 여백 · hairline 구분선 · 리서치 카드 그리드(넘버링 없이 병렬) · 이미지+메타 리스트 |
+| [Linear](https://linear.app) | 제품(다크·미니멀) | **초대형 타이포 hero** · 다크 절제(모노크롬+미세 색) · 제품 목업을 hero 아래 큰 카드 · "New" 뱃지 처리 |
+| [Artificial Analysis](https://artificialanalysis.ai/models/kimi-k3) | 데이터/벤치 대시보드 (우리 주제 직결) | **serif 헤드라인**(데이터인데 에디토리얼) · metric 카드에 랭킹(#4/187)+큰 숫자+아이콘 · 좌(산문 요약)/우(스펙 리스트) 2단 |
+| [Stripe Press](https://press.stripe.com) | 에디토리얼 출판 | 다크 럭셔리 + serif 브랜딩 · 오브젝트(책)를 hero 주인공으로 · 좌측 세로 눈금 · 극단적 절제 |
+
+추가 참고(미캡처, URL만): [Vercel](https://vercel.com) 제품 다크·타이포 / [Rauno Freiberg](https://rauno.me) 디자인 엔지니어 디테일 / [Emil Kowalski](https://emilkowal.ski) 마이크로 인터랙션 / [Our World in Data](https://ourworldindata.org) 데이터 표현 / [The Pudding](https://pudding.cool) 데이터 저널리즘 스크롤리텔링.
+
+## 종합 원칙 (레퍼런스에서 도출)
+
+1. **serif를 절제해서 도입** — 우수 리포트는 전부 헤드라인·리드에 serif를 쓴다. 순수 sans는 "제품 UI"처럼 보이고, serif 리드가 "읽을거리(리포트)" 신호를 준다. 단 **판정문 hero는 sans 유지**(임팩트), 리드·본문 강조에만 serif.
+2. **여백을 아끼지 말 것** — Anthropic·Linear 모두 상하·섹션 간격이 넓다. 좁으면 자료가 빽빽해 보인다.
+3. **hero 타이포를 키울 것** — Linear는 화면 절반이 헤드라인. 판정문이 작으면 임팩트가 죽는다.
+4. **데이터엔 맥락 숫자** — AA는 절대값뿐 아니라 랭킹(#4/187)·평균 대비를 붙인다. "60점"보다 "60점(1위)"이 읽힌다.
+5. **hairline 구분선** — 박스보다 얇은 선이 편집디자인처럼 보인다.
+
+## 안티패턴 (레퍼런스 따라하다 빠지는 함정)
+
+- **웜크림 배경 + serif + 테라코타 = AI 디폴트 룩 #1.** Anthropic·AA·Stripe가 웜톤+serif라 그대로 베끼면 오히려 "AI가 만든 것"처럼 된다. → **우리는 다크 우선 유지**(Linear 방향)로 차별화하고, serif는 강조에만 소량.
+- serif를 본문 전체에 쓰기 → 한글 serif(바탕/Batang)는 화면에서 조악. 한글 본문은 sans 유지, serif는 영문·숫자·강조에만.
+- 데이터 카드를 장식으로 4개 나열 → AA는 실데이터 대시보드라 정당하지만, 판정 리포트에선 "숫자로 보면" 한 블록으로 충분(과하면 stat 그리드 = AI 디폴트).
+
+## report-template.html 적용 상태 / 다음 개선 후보
+
+- 현재 템플릿: 다크 우선 · sans 판정문 hero · mono 데이터 정렬 (Linear 방향, 차별화 ✓)
+- 다음 회차 개선 후보: ①리드/강조에 serif 소량 도입 ②hero 타이포 한 단계 키움 ③"숫자로 보면"에 순위/평균 대비 맥락 추가 ④섹션 상하 여백 확대
+- 적용은 A단계 독푸딩 회차마다 1~2개씩(과욕 금지 — 한 번에 하나씩 검증).
