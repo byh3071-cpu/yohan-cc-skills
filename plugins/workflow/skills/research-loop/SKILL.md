@@ -1,0 +1,98 @@
+---
+name: research-loop
+description: "Use when 백요한 wants to run a research question through the full pipeline — fan-out search, adversarial verify, save a cited research-report to brain, wire it into the knowledge compound loop, and back-fill the Notion 리서치 파이프라인 DB. Triggers: '리서치 돌려', '이거 조사해줘 <질문>', '검증 리서치', '리서치 파이프라인', '<주제> 파고들어줘', 'research this'."
+---
+
+# Research Loop
+
+## Overview
+리서치 질문 1건을 **수집→적대검증→리포트 저장→지식 복리 배선→검수용 HTML→brain PR→노션 백필→계측** 한 바퀴 돌린다. 산출물은 죽은 파일이 아니라 기존 지식 루프(KNOWLEDGE-LOOP)에 합류한다 — 리서치 리포트는 새 종류의 산출물이 아니라 `source-to-summary-protocol` **입력 타입 #10**이다. 전체 규약 = **ADR-010** (`yohan-brain/docs/adr/ADR-010-research-pipeline.md`).
+
+**되돌리기 어려운 것 금지:** brain 반영은 PR까지만(머지=사람), 노션 쓰기는 **자기 행 additive만**(스키마·옵션 변경·삭제·타 행 금지, D6). LLM은 리포트(읽기 산출물)만 생산.
+
+이 스킬은 **A단계 수동 모드**다. B단계 무인화(`research.workflow.js` + 클라우드 cron)는 A단계 졸업(연속 2회 수정지시≤1) 후 별도 추가.
+
+## When to Use
+- 트리거 문구(위 description) 또는 노션 "리서치 파이프라인" DB 인박스 행이 있을 때.
+- 검증 안 된 주장(신모델 벤치·경쟁사 클레임 등)을 사실검증+실용판정 하고 싶을 때.
+
+**When NOT:** 단순 사실 1개 조회(그냥 검색해 답) · 코드 구현·설계(다른 스킬) · 이미 아는 것 정리(리서치 아님).
+
+## Steps
+
+### ① 질문 정규화
+- 질문이 불충분하면 스코프 2~3개만 먼저 확인(비교 축·용도·기간). 충분하면 바로 진행.
+- 확정: `topic`(model-landscape / competitor / tech-eval / idea-validation / tooling …) · `slug`(kebab) · `valid_until`(벤치·순위 등 churn 빠르면 3개월, 안정적이면 6~12개월).
+
+### ② 노션 인박스 행 → 진행중
+- 노션 "리서치 파이프라인" DB에 해당 질문 행이 있으면 상태 `진행중`으로 업데이트(자기 행만). 없으면(대화 발단) 새 행 생성(질문·주제·상태=진행중·요청일).
+
+### ③ 소스 수집 (fetch 폴백 체인)
+- 웹 검색은 `deep-research`(내장) 또는 다각도 병렬 검색 + `agent-reach`(플랫폼별 조사) 활용.
+- **fetch 폴백 체인** (한 소스가 막히면 다음으로): `WebFetch` → `playwright`/`claude-in-chrome`(JS 렌더·로그인 벽 우회) → **스크린샷 → vision(Read)로 차트·다이어그램 해석**.
+- **미디어 한계 돌파** — `source-to-summary-protocol` 입력 분기 재사용(신규 구현 금지):
+  - 이미지(벤치 차트 등): 브라우저 스크린샷 → vision 해석 → 수치를 본문에 반영 + 원본을 `research/assets/<slug>/`에 증거로 저장.
+  - 동영상(발표·데모·리뷰): `yohan-core:youtube-summary`의 yt-dlp 자막 확보 절차 그대로 → 타임스탬프 인용. 필요 시 키프레임 추출 → vision.
+- 원문 확보 실패 = 해당 주장 `[미검증]` 표기(추측 요약 금지).
+
+### ④ 적대검증
+- 핵심 주장(특히 수치·순위·우열 클레임)만 골라 적대검증 — `yohan-core:critic` 또는 `cross-check` 스킬. 신모델 자체벤치·체리픽 여부를 명시적으로 의심.
+- 판정: 통과/조건부/기각 + 확신도(상~하). 근거엔 `[웹]`(출처 URL) / `[추론]` 태그.
+
+### ⑤ 리포트 작성 + assets 커밋
+- 저장: `yohan-brain/docs/yohanthinking/research/YYYY-MM-DD--<slug>.md`.
+- frontmatter: `research/INDEX.md` 규약(id·date·type=research-report·method·topic·status·confidence·valid_until·tags).
+- 본문: `## 0. 결론부터 (두괄식)` + 비교 축·가설별 판정표로 시작. 두괄식·표·[추론]/[웹] 태그(soul report 모드 — 핵심만, 검수 부담 낮게).
+- 이미지 증거: `research/assets/<slug>/`에 커밋. **상한 ≤10장·장당 ≤500KB** — 초과 시 PowerShell 리사이즈, 그래도 초과면 장수 축소(가장 중요한 것만). git에 커밋되는지 확인(HTML은 gitignore, png는 추적).
+
+### ⑥ INDEX 이중 갱신
+- `docs/yohanthinking/research/INDEX.md` 표에 1행 추가 **그리고** `docs/yohanthinking/INDEX.md` research 섹션 미러도 갱신. **둘 다** — 한쪽만 하면 반드시 drift(ADR-010).
+
+### ⑦ HTML 시각 요약 (검수용, 커밋 안 함)
+- `workflow:visualize` Mode B(결과 보고서 HTML) 재사용. 출력 경로만 `docs/yohanthinking/research/<slug>.html`.
+- 두괄식 판정 카드 + 확신도 게이지 + 출처 표 + (있으면) 로컬 assets 이미지 임베드(상대경로). 브라우저로 열어 검수.
+- `.gitignore`가 `research/*.html`을 잡으므로 `git status`에 안 떠야 정상.
+
+### ⑧ 복리 배선 (추출 — 후보까지만)
+- `source-to-summary-protocol` **Step 4.5→4.6→4.7 직행**(입력 #10 특칙 — Step 1·2 건너뜀). haiku 서브에이전트 위임 가능.
+- 4.5 교차검증(기존 insights·triple-map 대조) → 4.6 역전파(기존 rules·docs 충돌·갱신 대조, 체크포인트1) → 4.7 온톨로지 추출(개체·트리플, 체크포인트2).
+- 추출물: 키워드→`knowledge-hub/keywords.md` 후보 · 인물/스택→`wiki/entities/` 후보 · 개념→`concepts`/AI사전 후보 · 트리플→`triple-map.md` · 종합→`knowledge-hub/`.
+- **승격은 후보 리스트업까지만.** 확정은 `wiki-ops` 사람 게이트. **결과 한 줄 보고 필수**("키워드 N·트리플 N·승격후보 N" 또는 "스킵: 이유") — 침묵 금지.
+
+### ⑨ brain PR (머지 X)
+- `docs/research-pipeline` 계열 브랜치에 커밋 → PR 생성. **머지 안 함**(사람 게이트). PR 본문에 두괄식 판정 + 승격 후보 목록.
+
+### ⑩ 노션 행 백필 (additive)
+- 자기 행만 업데이트: 상태 `완료(검수대기)` · 요약 3줄 · brain 경로(+GitHub 링크) · 확신도 · 완료일.
+- **금지:** 스키마 변경·select 옵션 추가·삭제·타 행 수정(D6). 머지 후 사람이 `완료` 확정.
+
+### ⑪ 계측 1행
+- 노션 "바이브코딩 워크플로 계측" DB에 1행: 수정지시 수 · 검수 소요분 · 승격 후보 수 · 미디어 처리 성공/실패. A단계 졸업 판정(연속 2회 수정지시≤1) 근거.
+
+## Quick Reference
+| 항목 | 값 |
+|---|---|
+| 리포트 정본 | `yohan-brain/docs/yohanthinking/research/YYYY-MM-DD--slug.md` |
+| 이미지 증거 | `research/assets/<slug>/` 커밋 (≤10장·장당≤500KB) |
+| HTML | `research/<slug>.html` — 파생물, 커밋 안 함 |
+| 복리 배선 | source-to-summary 입력 #10 → Step 4.5~4.7 |
+| 게이트 | brain=PR+사람 머지 / 노션=자기 행 additive만 |
+| INDEX | research/INDEX.md + yohanthinking/INDEX.md **둘 다** |
+| 계측 | 바이브코딩 워크플로 계측 DB (졸업: 연속 2회 수정지시≤1) |
+
+## Common Mistakes
+- 신규 `docs/research/` 만들기 → 기존 `yohanthinking/research/` 관례 이중화. 반드시 기존 경로.
+- 리서치를 별도 프로토콜로 취급 → source-to-summary 입력 #10로 태워 복리 배선 유지(신규 프로토콜 발명 금지).
+- INDEX 한쪽만 갱신 → drift. research/INDEX.md + yohanthinking/INDEX.md 둘 다.
+- HTML 커밋 → 파생물, gitignore로 제외. `git status`에 뜨면 잘못된 것.
+- assets 500KB 초과 방치 → 리사이즈→장수 축소 폴백.
+- 노션에서 옵션 추가·스키마 변경 → 파괴적, additive만(D6). 옵션 부족하면 대화형에서 사람 승인 후 기존 옵션 전부 포함해 추가+재fetch 검증.
+- 승격을 AI가 확정 → 후보까지만, 확정은 wiki-ops 사람.
+- 추출 결과 침묵 → "키워드 N·트리플 N·승격후보 N" 한 줄 보고 필수.
+- PR 머지까지 자동 → 금지. PR까지만, 머지는 사람.
+
+## 관련
+- 규약 SoT: `yohan-brain/docs/adr/ADR-010-research-pipeline.md`
+- 복리 배선: `yohan-brain/memory/rules/source-to-summary-protocol.md` (#10) · `docs/KNOWLEDGE-LOOP.md` · `memory/rules/wiki-ops.md`
+- 무인 루프 레퍼런스(B단계 이식 원형): `../overnight-autoloop/` (얇은 스킬 + workflow.js 엔진 + LF 사본 실행 + 되돌릴 수 없는 작업 차단)
+- 범용 코어 독트린(되돌릴 수 없는 작업 4중 안전장치) = 글로벌 PAT-003.
