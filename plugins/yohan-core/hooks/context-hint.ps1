@@ -1,6 +1,7 @@
 ﻿#requires -Version 5.1
 # context-hint.ps1 — SessionStart 훅: 현재 레포 컨텍스트를 모델에 주입
 $ErrorActionPreference = 'Continue'
+try { $evt = ([Console]::In.ReadToEnd() | ConvertFrom-Json) } catch { $evt = $null }
 $cwd = (Get-Location).Path
 $repo = Split-Path $cwd -Leaf
 $branch = (git rev-parse --abbrev-ref HEAD 2>$null)
@@ -26,4 +27,14 @@ $out = @{ hookSpecificOutput = @{ hookEventName = 'SessionStart'; additionalCont
 # PAT-002: 비-ASCII 를 \uXXXX 로 강제(모지바케·JSON 파싱실패 방지).
 $out = [regex]::Replace($out, '[^\x00-\x7F]', { param($m) '\u{0:x4}' -f [int][char]($m.Value[0]) })
 Write-Output $out
+
+# routing miss 감지용 세션 시작 baseline sha 기록 (SessionEnd detect-routing-miss.ps1 이 대비 측정).
+try {
+  if ($evt -and $evt.session_id) {
+    $cacheDir = Join-Path $env:USERPROFILE '.claude\.cache'
+    if (-not (Test-Path -LiteralPath $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+    $sha = (git -C "$cwd" rev-parse HEAD 2>$null)
+    if ($sha) { Set-Content -LiteralPath (Join-Path $cacheDir "routing-$($evt.session_id).start") -Value "$sha".Trim() -Encoding ASCII }
+  }
+} catch {}
 exit 0
