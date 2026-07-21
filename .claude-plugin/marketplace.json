@@ -24,8 +24,8 @@
     {
       "name": "workflow",
       "source": "./plugins/workflow",
-      "description": "반복 작업 워크플로 스킬 묶음 — release-gate, dogfood-crosscheck, visualize, handoff(채팅 종료 검증=scan/close/full), overnight-autoloop, research-loop(리서치 파이프라인), VHK P0 스킬.",
-      "version": "0.3.6"
+      "description": "반복 작업 워크플로 스킬 묶음 — new-repo, parallel, release-gate, dogfood-crosscheck, visualize, handoff(채팅 종료 검증=scan/close/full·재고축), overnight-autoloop, research-loop(리서치 파이프라인+HTML 템플릿), VHK P0(gate/evolve/dogfood-issue/bootstrap/goal-health).",
+      "version": "0.3.7"
     },
     {
       "name": "critical-thinking",
