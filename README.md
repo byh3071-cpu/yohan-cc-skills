@@ -33,7 +33,7 @@ claude plugin install statusline@yohan-cc-skills
 
 | 플러그인 | 구성 | 내용 |
 |---|---|---|
-| `yohan-core` | 스킬 7 · 서브에이전트 4 · 훅 7 · MCP | 모든 레포에 상속되는 공통 두뇌. 스킬(cc-docs·cost-guard·cross-check·cursor-docs·ship-it·yohan-writing·studio-post) + 서브에이전트(explorer·planner·critic·shipper) + 보안/포맷/세션로그 훅 + yohan-voice 출력스타일 + yohan MCP(Notion) |
+| `yohan-core` | 스킬 10 · 서브에이전트 6 · 훅 9 · MCP | 모든 레포에 상속되는 공통 두뇌. 스킬(cc-docs·cost-guard·cross-check·cursor-docs·naver-convert·**plan-audit**·ship-it·studio-post·yohan-writing·youtube-summary) + 서브에이전트(explorer·planner·critic·shipper·prd-generator·prd-validator) + 보안/포맷/세션로그·라우팅미스감지 훅 + yohan-voice 출력스타일 + yohan MCP(Notion) |
 | `statusline` | `/setup-statusline` | Windows PowerShell 상태줄 배포 + settings.json 병합. ctx 1M 자동감지, tok=실작업량(cache_read 제외), caveman 태그 머지, UTF-8 출력 |
 | `workflow` | 스킬 7 | 반복 작업 워크플로 묶음 (아래 표) |
 | `critical-thinking` | `/critical` · skeptic | 비판적 사고 모드 — 소크라테스식 질문·CoVe 자가검증·steelman-attack으로 아첨·할루시네이션 억제. `/critical lite\|full\|ultra\|auto\|off` 토글 + critical-thinking 스킬 + skeptic 서브에이전트. 대화·추론 시점 담당(코드용 critic과 분리). 기본 OFF 옵트인 |

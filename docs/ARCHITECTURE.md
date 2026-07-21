@@ -58,17 +58,19 @@ plugins/yohan-core/
 ├─ .mcp.json                        # yohan MCP 서버 정의
 ├─ CLAUDE.md                        # 공통 운영 메모리(상속용)
 ├─ loop.md                          # 세션 점검 체크리스트
-├─ agents/      explorer · planner · critic · shipper   (.md, frontmatter에 model/tools)
+├─ agents/      explorer · planner · critic · shipper · prd-generator · prd-validator   (.md, frontmatter에 model/tools)
 ├─ commands/    flow.md             (/yohan-core:flow)
-├─ hooks/       hooks.json + 7 ps1
+├─ hooks/       hooks.json + 9 ps1
 ├─ output-styles/ yohan-voice.md
 ├─ references/  claude-code-docs.md
-└─ skills/      cc-docs · cost-guard · cross-check · cursor-docs · ship-it · yohan-writing · studio-post
+└─ skills/      cc-docs · cost-guard · cross-check · cursor-docs · naver-convert · plan-audit · ship-it · studio-post · yohan-writing · youtube-summary
 ```
 
 - **서브에이전트 파이프라인**: `/yohan-core:flow`가 explorer(탐색)→planner(설계)→critic(적대검증, 문제0까지 반복)→shipper(출시) 순으로 위임. (출처: `commands/flow.md`)
 - **모델 배치**(tier, alias=세대 자동 승계): 탐색 explorer=haiku · 구현 shipper=sonnet · 판단·검증 planner/critic=opus · 지휘=세션 모델. **SoT는 `agents/*.md` frontmatter**(값은 항상 거기서 확인 — 이 줄은 파생 미러).
 - **skills**는 각 `SKILL.md`(frontmatter `name`/`description`, 일부 `allowed-tools`·`disable-model-invocation`)로 정의. `ship-it`은 `disable-model-invocation: true` + git 전용 allowed-tools.
+  ⚠️ **서브에이전트를 위임하는 스킬은 `allowed-tools`를 생략해야 한다** — 목록에 Agent가 빠지면 위임이 막힌다(`cross-check`가 그 예). `plan-audit`이 생략 이유.
+- **plan-audit**(역추출 대조): 계획 승인 직전 감사. 감사자에게 계획을 주지 않고 대화 원문만 줘서 요구사항을 독립 추출 → 계획과 대조(앵커링 차단). critic=원문만, explorer=경로목록만, 대조는 지휘자. 계획 사본 파일을 만들지 않는 게 차단의 본체.
 
 ### 4.2 statusline
 ```
