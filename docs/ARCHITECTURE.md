@@ -40,7 +40,7 @@ yohan-cc-skills/
 ## 3. 마켓플레이스 구조
 
 `.claude-plugin/marketplace.json`:
-- `name`: `yohan-cc-skills`, `owner`: 백요한, `metadata.version`: `0.1.0`.
+- `name`: `yohan-cc-skills`, `owner`: 요한, `metadata.version`: `0.1.0`.
 - `plugins[]`: 각 항목이 `{ name, source(상대경로 ./plugins/<x>), description, version }`. **버전 SoT는 각 `plugin.json`**(아래 값은 plugin.json 실측 — marketplace.json 은 **수동 미러**라 plugin.json 변경 시 사람이 맞춰 정렬해야 한다. `sync-marketplace.ps1` 은 버전 정합을 **하지 않는다**. 문서는 하드코딩 대신 매니페스트 참조 — PAT-004):
   - `yohan-core` → `./plugins/yohan-core` (v0.3.2)
   - `statusline` → `./plugins/statusline` (v0.1.0)

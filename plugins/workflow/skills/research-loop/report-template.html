@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<!--
+  research-loop 리포트 검수용 HTML 표준 템플릿 (ADR-010 ⑦)
+  검증: 2026-07-20 kimi-k3-vs-fable-5 회차①. 요한 피드백 반복 반영(밋밋→전달감→와이드).
+
+  사용법: 이 파일을 <slug>.html로 복사(docs/yohanthinking/research/, gitignore됨) →
+          "SLOT" 이라고 적힌 주석 부분만 교체. CSS·구조는 유지.
+          (주의: 이 주석 안에 주석 종료 기호를 쓰면 여기서 주석이 끊겨 아래 규칙이 본문에 노출된다)
+
+  ── 전달감 규칙 (요한 회차① 핵심 교훈) ──
+  · 눈이 멈출 "큰 것"을 만들 것: 가장 중요한 수치 대비를 .score 스코어라인으로 대형화(승패 즉각).
+  · 핵심만 크고 진하게, 나머지는 조용히. 색(win/warn)은 핵심에만 몰아준다.
+  · 위계 폭을 넓게: 대형 숫자(3.4rem) ~ 메타(0.76rem)까지.
+  · 비교는 막대로 시각화(.bar, .mini) — 눈으로 훑어 읽게 하지 말 것.
+  · 폭은 max-width 840(데스크탑 양옆 여백 최소). 표 근거가 한 줄에 담기게.
+
+  ── 레이아웃 규칙 (회차① 확정 — 어기면 되돌리기 왕복 발생) ──
+  · 1컬럼 세로 한 줄기로 쭉. 2컬럼·대시보드형 분할 금지, "한 화면에 압축"(100vh 맞춤) 금지.
+  · 글은 좌측 정렬(보고서). 제목·요약을 text-align:center 로 만들지 말 것 — "가운데"는 글자 정렬이 아니라
+    콘텐츠 블록이 화면 정중앙이라는 뜻이다.
+  · 폭 max-width:840 고정. 폰트는 Pretendard 1종 통일.
+  · 요구가 "가운데로"면 CSS 정렬을 의심하기 전에 뷰포트부터 확인한다(아래 렌더 검증).
+
+  ── 렌더 검증 함정 (회차① 최대 시간 낭비) ──
+  · playwright 뷰포트가 사람이 보는 창 크기와 다르면 정렬이 틀린 것처럼 보인다.
+    · 뷰포트 < 창  → 오른쪽에 빈 띠 + 스크롤바가 화면 한가운데 뜸
+    · 뷰포트 > 창  → 오른쪽이 화면 밖으로 잘려 본문이 오른쪽으로 밀려 보임
+  · 반드시 창 실제 CSS 폭에 맞춰 resize 후 판단. 브라우저 줌·DPI 배율이 끼면 스크린샷 물리 픽셀 ≠ CSS px
+    (판별: 840px여야 할 요소가 923px로 찍히면 배율 1.1). window.outerWidth 가 실제 창 CSS 폭 힌트.
+  · 정렬 판정은 눈이 아니라 계측으로: docCenter - innerWidth/2 == 0 이면 정중앙.
+
+  ── 디자인 규칙 (AI스러움 금지) ──
+  · 금지: 그라디언트, 이모지 헤더, 장식용 stat 카드 grid. 노션 문서 톤 + 편집디자인 완성도.
+  · 색: 신호등 red/green 말고 win=진초록·warn=러스트, 나머지 흑/회색. 다크 우선+라이트+reduced-motion+모바일.
+  · 레퍼런스·안티패턴: references/design-references.md (Anthropic·Linear·AA·Stripe Press + 웜크림+serif=AI디폴트 함정).
+
+  ── 카피 규칙 (이해 쉽게 + 정보전달 기법) ──
+  · 벤치·기술 용어 풀어쓰기(예: "AA Intelligence Index"→"여러 AI를 같은 잣대로 채점하는 독립 기관 점수"). 비유 금지.
+  · 두괄식(BLUF) + 파인만(쉽게). 피라미드: 근거를 유형별로 그룹. 토픽센텐스: 각 덩어리·불릿 첫머리에 요지(.lead / li 첫 <b>).
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><!-- SLOT: 제목 (짧게) --></title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root {
+    --bg:#ffffff; --text:#2c2b28; --muted:#78766f; --faint:#adaba3;
+    --line:#ececea; --line2:#dedcd7; --th:#f7f6f3; --band:#f4f6f5;
+    --win:#1f8a5b; --k:#9a978f; --warn:#c05f2c;
+    /* 폰트 1종 통일 — 숫자·본문·코드가 서로 다른 폰트로 튀면 완성도가 깎인다(회차① 지적).
+       mono도 Pretendard로 두고, 자릿수 정렬은 font-variant-numeric:tabular-nums 로 해결. */
+    --sans:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI","Malgun Gothic",Roboto,sans-serif;
+    --mono:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#181818; --text:#e4e3df; --muted:#9b9a94; --faint:#63625d;
+      --line:#2a2a2a; --line2:#353532; --th:#222221; --band:#1e211f;
+      --win:#3fb47f; --k:#87847c; --warn:#d17a49; }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  /* 세로 스크롤바가 오른쪽 여백만 잡아먹어 본문이 오른쪽으로 밀려 보이는 현상 방지.
+     양쪽에 스크롤바 폭만큼 자리를 잡아 흰 여백이 좌우 같아진다(회차① "가운데 아닌 것 같다"의 실제 원인). */
+  html { scrollbar-gutter:stable both-edges; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans);
+    line-height:1.72; letter-spacing:-.006em; -webkit-font-smoothing:antialiased;
+    font-size:16px; padding:4rem 1.5rem 6rem; font-feature-settings:"tnum"; }
+  /* 1컬럼 세로 한 줄기 + 화면 정중앙. 다단·한화면 압축 금지(아래 레이아웃 규칙 참조) */
+  .doc { max-width:840px; margin:0 auto; }
+
+  .meta { font-size:.76rem; letter-spacing:.06em; color:var(--faint); text-transform:uppercase; margin-bottom:1rem; }
+  h1 { font-size:2.1rem; font-weight:780; letter-spacing:-.025em; line-height:1.22; margin-bottom:.7rem; }
+  h1 .em { color:var(--warn); }
+  .standfirst { font-size:1.05rem; color:var(--muted); line-height:1.55; margin-bottom:2.75rem; }
+
+  /* 스코어라인 — 최상단 임팩트. 가장 중요한 수치 대비 1개 */
+  .score { background:var(--band); border-radius:12px; padding:1.75rem 1.75rem 1.5rem; margin-bottom:1rem; }
+  .score .cap { font-size:.78rem; letter-spacing:.03em; color:var(--muted); margin-bottom:1.1rem; }
+  .score .cap b { color:var(--text); font-weight:650; }
+  .score .row { display:grid; grid-template-columns:1fr auto 1fr; align-items:end; gap:1.2rem; }
+  .score .side.r { text-align:right; }
+  .score .name { font-size:.85rem; color:var(--muted); margin-bottom:.15rem; }
+  .score .name.wname { color:var(--win); font-weight:650; }
+  .score .val { font-size:3.4rem; font-weight:800; line-height:1; letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums; color:var(--k); }
+  .score .val.w { color:var(--win); }
+  .score .vs { font-size:1rem; color:var(--faint); padding-bottom:.7rem; font-weight:600; }
+  .score .bars { display:grid; grid-template-columns:1fr auto 1fr; gap:1.2rem; margin-top:.9rem; }
+  .score .bar { height:6px; border-radius:3px; background:var(--line2); overflow:hidden; }
+  .score .bar > span { display:block; height:100%; border-radius:3px; }
+  .score .bar.kb > span { background:var(--k); }
+  .score .bar.fb > span { background:var(--win); }
+  .score .bspacer { width:2.5rem; }
+
+  /* 핵심 팩트 3개 */
+  .facts { display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; margin-bottom:3rem; }
+  .fact .fl { font-size:.74rem; letter-spacing:.02em; color:var(--faint); text-transform:uppercase; margin-bottom:.35rem; }
+  .fact .fv { font-size:1.25rem; font-weight:700; line-height:1.25; letter-spacing:-.01em; }
+  .fact .fv .u { font-size:.8rem; font-weight:400; color:var(--muted); display:block; margin-top:.2rem; }
+  .fact .fv.win { color:var(--win); }
+  @media (max-width:540px){ .facts{grid-template-columns:1fr; gap:.4rem} }
+
+  /* 섹션 머리 — 초록 악센트바로 스크롤 리듬을 만든다(길게 이어지는 1컬럼의 이정표) */
+  h2 { font-size:.82rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); margin:3.2rem 0 .7rem; padding-left:.7rem; border-left:2.5px solid var(--win); }
+  p { margin:.8rem 0; }
+  p.lead { font-weight:700; color:var(--text); margin:.2rem 0 1rem; font-size:1.1rem; letter-spacing:-.01em; }
+  b { font-weight:650; }
+  .win { color:var(--win); font-weight:650; } .warn { color:var(--warn); font-weight:650; }
+  ul { list-style:none; margin:1rem 0; }
+  li { position:relative; padding-left:1.15rem; margin:.85rem 0; }
+  li::before { content:""; position:absolute; left:.1rem; top:.72em; width:5px; height:5px; border-radius:50%; background:var(--faint); }
+  li b:first-child { color:var(--text); }
+
+  table { width:100%; border-collapse:collapse; margin:.4rem 0; font-size:.93rem; }
+  td,th { text-align:left; padding:.8rem .3rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  thead th { border-bottom:1.5px solid var(--line2); color:var(--faint); font-weight:600; font-size:.74rem; letter-spacing:.05em; text-transform:uppercase; }
+  tbody tr:last-child td { border-bottom:none; }
+  .verdict-t td:first-child { width:42%; }
+  .verdict-t .ans { font-weight:700; white-space:nowrap; font-size:.98rem; }
+  .ans.no { color:var(--warn); } .ans.some { color:var(--text); }
+  .verdict-t td:last-child { color:var(--muted); font-size:.87rem; }
+
+  /* 숫자표 + 미니막대 */
+  .num-t td { padding:.7rem .3rem; }
+  .num-t td:first-child { width:38%; color:var(--text); }
+  .num-t .cellbar { display:flex; align-items:center; gap:.6rem; }
+  .num-t .mini { flex:1; height:5px; border-radius:3px; background:var(--line); overflow:hidden; max-width:90px; }
+  .num-t .mini > span { display:block; height:100%; border-radius:3px; background:var(--k); }
+  .num-t .mini.w > span { background:var(--win); }
+  .num-t .figure { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; font-size:.95rem; min-width:4.2rem; text-align:right; }
+  .num-t .figure.win { color:var(--win); font-weight:650; }
+  .num-t .rk { color:var(--faint); font-family:var(--sans); font-size:.8rem; }
+
+  .act-t td:first-child { width:30%; }
+  .act-t td:nth-child(2) { font-weight:700; width:24%; }
+  .act-t .keep { color:var(--win); }
+  .act-t td:last-child { color:var(--muted); font-size:.87rem; }
+
+  .note { background:var(--th); border-radius:10px; padding:1.1rem 1.25rem; margin:1rem 0; color:var(--muted); font-size:.92rem; }
+  .note b { color:var(--text); }
+
+  footer { margin-top:4rem; padding-top:1.25rem; border-top:1px solid var(--line); font-size:.75rem; color:var(--faint); line-height:1.75; }
+  footer code { font-family:var(--mono); }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <div class="meta"><!-- SLOT: 리서치 종류 · 날짜 --></div>
+  <h1><!-- SLOT: 판정 한 문장. 핵심어만 <span class="em"> --></h1>
+  <p class="standfirst"><!-- SLOT: 판정 부연 1~2문장 --></p>
+
+  <!-- 스코어라인: 가장 중요한 수치 대비 1개. 승자에 .w. 막대 width는 값 비율(예 57/60=95%) -->
+  <div class="score">
+    <div class="cap"><!-- SLOT: 지표명 <b>강조</b> · 방향(높을수록 좋음 등) --></div>
+    <div class="row">
+      <div class="side"><div class="name">A</div><div class="val">값</div></div>
+      <div class="vs">&lt;</div>
+      <div class="side r"><div class="name wname">B</div><div class="val w">값</div></div>
+    </div>
+    <div class="bars">
+      <div class="bar kb"><span style="width:95%"></span></div>
+      <div class="bspacer"></div>
+      <div class="bar fb"><span style="width:100%"></span></div>
+    </div>
+  </div>
+
+  <!-- 핵심 팩트 3개: 가장 잘 팔리는 사실. 유리한 값에 .win -->
+  <div class="facts">
+    <div class="fact"><div class="fl">라벨</div><div class="fv win">큰 값<span class="u">부연</span></div></div>
+    <div class="fact"><div class="fl">라벨</div><div class="fv">큰 값<span class="u">부연</span></div></div>
+    <div class="fact"><div class="fl">라벨</div><div class="fv">큰 값<span class="u">부연</span></div></div>
+  </div>
+
+  <h2>왜 그렇게 봤나</h2>
+  <p class="lead"><!-- SLOT: 근거 전체를 한 줄로 요약(토픽센텐스) --></p>
+  <ul>
+    <!-- SLOT: <li><b>불릿 요지.</b> 상세…</li> × 근거 유형별(피라미드). 지지=<span class="win">, 반대=<span class="warn"> -->
+  </ul>
+
+  <h2>항목별 판정</h2>
+  <p class="lead"><!-- SLOT: 판정들이 수렴하는 한 줄 --></p>
+  <table class="verdict-t">
+    <thead><tr><th>질문</th><th>답</th><th>근거</th></tr></thead>
+    <tbody>
+      <!-- SLOT: <tr><td>질문?</td><td class="ans no">답</td><td>근거</td></tr>  ans: no/some -->
+    </tbody>
+  </table>
+
+  <h2>숫자로 보면</h2>
+  <p class="lead"><!-- SLOT: 숫자 대비 한 줄 요약 --></p>
+  <table class="num-t">
+    <thead><tr><th>항목</th><th>A</th><th>B</th></tr></thead>
+    <tbody>
+      <!-- SLOT: 각 행 = 항목 + 두 셀(.cellbar: mini 막대 + figure). 이긴 쪽 mini.w + figure.win.
+        <tr><td>지표 <span class="rk">(방향)</span></td>
+          <td><div class="cellbar"><div class="mini"><span style="width:95%"></span></div><span class="figure">값</span></div></td>
+          <td><div class="cellbar"><div class="mini w"><span style="width:100%"></span></div><span class="figure win">값</span></div></td></tr>  -->
+    </tbody>
+  </table>
+
+  <h2>그래서 뭘 하면 되나</h2>
+  <table class="act-t">
+    <thead><tr><th>대상</th><th>결정</th><th>이유</th></tr></thead>
+    <tbody>
+      <!-- SLOT: <tr><td>대상</td><td class="keep">결정</td><td>이유</td></tr>  유지 결정에 .keep -->
+    </tbody>
+  </table>
+
+  <h2>아직 모르는 것</h2>
+  <div class="note"><!-- SLOT: 미검증 + 재조사 시점(valid_until) --></div>
+
+  <footer><!-- SLOT: 정본 경로 · 방법(에이전트·출처·검증) · "검수용, 커밋 안 됨" --></footer>
+
+</div>
+</body>
+</html>
