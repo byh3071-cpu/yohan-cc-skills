@@ -1,11 +1,11 @@
 ---
 name: setup-statusline
-description: Use when setting up or repairing 백요한's Windows PowerShell Claude Code status line on a machine (desktop, laptop, new PC). Deploys the bundled statusline.ps1 to ~/.claude and merges settings.json (statusLine command + model). Windows + Windows PowerShell 5.1 only.
+description: Use when setting up or repairing 요한's Windows PowerShell Claude Code status line on a machine (desktop, laptop, new PC). Deploys the bundled statusline.ps1 to ~/.claude and merges settings.json (statusLine command + model). Windows + Windows PowerShell 5.1 only.
 ---
 
 # setup-statusline
 
-백요한의 Claude Code 상태줄을 현재 머신에 배포한다. 출력 예:
+요한의 Claude Code 상태줄을 현재 머신에 배포한다. 출력 예:
 
 ```
 [CAVEMAN] Opus 4.8 (1M context) · default · ~/dir (branch) · ctx 156k/1.0M (844k left, 16%) · 645k tok

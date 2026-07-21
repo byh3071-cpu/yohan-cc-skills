@@ -1,12 +1,12 @@
 ---
 name: overnight-autoloop
-description: "Use when 백요한 wants an unattended autonomous overnight run that finds, fixes, and PRs code defects on the yohan ecosystem repos. Triggers: '자는 동안 돌려', '자는 동안 goal', '오토파일럿 밤새', '무인 결함루프', '자율 수정 돌려', '밤새 고쳐놔', 'overnight loop', 'autonomous fix loop'."
+description: "Use when 요한 wants an unattended autonomous overnight run that finds, fixes, and PRs code defects on the yohan ecosystem repos. Triggers: '자는 동안 돌려', '자는 동안 goal', '오토파일럿 밤새', '무인 결함루프', '자율 수정 돌려', '밤새 고쳐놔', 'overnight loop', 'autonomous fix loop'."
 ---
 
 # Overnight Autoloop
 
 ## Overview
-백요한이 자는 동안 무인으로 코드 결함을 **감사발굴→진단→수정→검증+적대리뷰→PR(머지 X)** 한 바퀴 돌리고 아침에 머지권고만 보고. 엔진은 Workflow 스크립트(`autoloop.workflow.js`), 이 스킬은 파라미터 수집 + 런칭 + 아침 보고 담당.
+요한이 자는 동안 무인으로 코드 결함을 **감사발굴→진단→수정→검증+적대리뷰→PR(머지 X)** 한 바퀴 돌리고 아침에 머지권고만 보고. 엔진은 Workflow 스크립트(`autoloop.workflow.js`), 이 스킬은 파라미터 수집 + 런칭 + 아침 보고 담당.
 
 **되돌리기 어려운 것 전면 금지**(머지·close·force-push·외부데이터 재적재·노션쓰기). LLM 은 수정·검증만, 머지 결정은 아침에 사람.
 
