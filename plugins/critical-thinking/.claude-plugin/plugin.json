@@ -3,7 +3,7 @@
   "description": "비판적 사고 모드 — 소크라테스식 질문·CoVe 자가검증·steelman-attack으로 아첨(sycophancy)·할루시네이션·비현실적 답변을 억제하는 토글형 추론 렌즈. /critical lite|full|ultra|auto|off. 대화·추론 시점 담당(코드용 critic과 분리). 기본 OFF 옵트인.",
   "version": "0.1.0",
   "author": {
-    "name": "백요한",
+    "name": "byh3071",
     "email": "byh3071@gmail.com"
   },
   "homepage": "https://github.com/byh3071-cpu/yohan-cc-skills"

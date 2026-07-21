@@ -1,6 +1,6 @@
 ---
 name: research-loop
-description: "Use when 백요한 wants to run a research question through the full pipeline — fan-out search, adversarial verify, save a cited research-report to brain, wire it into the knowledge compound loop, and back-fill the Notion 리서치 파이프라인 DB. Triggers: '리서치 돌려', '이거 조사해줘 <질문>', '검증 리서치', '리서치 파이프라인', '<주제> 파고들어줘', 'research this'."
+description: "Use when 요한 wants to run a research question through the full pipeline — fan-out search, adversarial verify, save a cited research-report to brain, wire it into the knowledge compound loop, and back-fill the Notion 리서치 파이프라인 DB. Triggers: '리서치 돌려', '이거 조사해줘 <질문>', '검증 리서치', '리서치 파이프라인', '<주제> 파고들어줘', 'research this'."
 ---
 
 # Research Loop
@@ -78,6 +78,21 @@ description: "Use when 백요한 wants to run a research question through the fu
 - **타이밍**: 파이프라인 실행 직후가 아니라 **사용자 검수 피드백 후** 기록한다 — 핵심 지표인 "수정지시 수"가 검수 전엔 미확정(회차① 교훈).
 - 노션 "바이브코딩 워크플로 계측" DB(`03a2cd6a`)에 1행: 수정지시 수 · 검수 소요분 · 승격 후보 수 · 결과(성공/부분성공/실패). A단계 졸업 판정(연속 2회 수정지시≤1) 근거.
 - **주의**: 이 DB "프로젝트" select에 리서치용 옵션이 없다 → 옵션 추가는 파괴적(전역 규칙)이라 **사람 승인 필요**. 승인 전엔 세션/하네스 text 필드로 우회 기록.
+
+#### 카운터 정의 (2026-07-21 확정 — 회차①에서 정의 부재로 값이 자의적이 된 뒤 고정)
+
+| 카운터 | 정의 | 포함 | 제외 |
+|---|---|---|---|
+| `수정지시` | 산출물이 요구·의도와 **어긋나서** 되돌리거나 다시 만들게 한 **요구의 개수** | 오해·오작동·범위이탈 교정 | 새 정보로 요구가 구체화되는 정상 수렴(취향 수렴) |
+| `에러` | 산출물·도구가 실제로 **실패**한 기술 사건 | 버그·렌더 실패·검증 방법 결함 | 취향 불일치 |
+| `드리프트` | 요구 범위를 **넘어선** 산출 | 시키지 않은 구조 개편 | 요구 내 시행착오 |
+| `승격후보` | **wiki·knowledge-hub로 올린(또는 올릴) 카드 수** | 개념·도구·조직 카드 | triple-map 등록 행 수(등록 ≠ 승격) |
+
+**집계 규칙 2개** — 이게 없으면 같은 회차가 2로도 9로도 세어진다.
+1. **요구 1개 = 1건.** 하나의 요구가 관철될 때까지의 왕복은 몇 번이든 1건으로 센다. 왕복 횟수로 세면 회차마다 값이 요동쳐 추세 비교가 불가능해진다.
+2. **축 간 중복은 허용, 축 내 중복은 금지.** 한 사건이 수정지시·에러·드리프트 중 여럿에 해당하면 각 축에 1회씩 계상한다(축이 서로 다른 것을 측정하므로). 같은 축에 두 번 세지 않는다.
+
+**미측정은 0이 아니라 빈칸**으로 두고 `세션` 텍스트에 사유를 적는다(기존 행 관행). 제외한 항목도 은폐하지 말고 텍스트에 병기한다(예: "취향 수렴 5회 별도").
 
 ## Quick Reference
 | 항목 | 값 |
