@@ -191,7 +191,11 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
       $text = $c
     } elseif ($c) {
       # 배열이면 text 블록만. image(base64) 는 버린다.
-      foreach ($b in $c) { if ($b.type -eq 'text') { $text += $b.text } }
+      # 블록 사이는 개행으로 잇는다 — 그냥 이으면 앞 블록 끝 단어와 뒤 블록 첫 단어가
+      # 붙어서 없던 낱말이 생긴다. verbatim 을 표방하면서 원문을 바꾸는 셈이었다.
+      $parts = @()
+      foreach ($b in $c) { if ($b.type -eq 'text' -and $b.text) { $parts += $b.text } }
+      $text = ($parts -join "`n")
     }
     $text = $text.Trim()
     if (-not $text) { continue }
