@@ -331,6 +331,16 @@ for ($i = 0; $i -lt $turns.Count; $i++) {
 
 # 선택지 응답은 별도 파일. ★ critic 프롬프트에 섞이면 블라인드가 깨진다 — 파일이 갈려 있어야 실수로도 안 섞인다.
 $decFile = $null
+$staleDecRemoved = $false
+if ($decisions.Count -eq 0) {
+  # 이번 실행에서 0건인데 같은 세션의 옛 파일이 남아 있으면, 지휘자가 지난 실행의 결정을
+  # 이번 근거로 읽는다. 파서가 퇴행했을 때 특히 위험하다 — 유실을 옛 데이터가 가려버린다.
+  $oldDec = Join-Path $OutDir "decisions-$sessionId.txt"
+  if (Test-Path -LiteralPath $oldDec) {
+    Remove-Item -LiteralPath $oldDec -Force -EA SilentlyContinue
+    $staleDecRemoved = $true
+  }
+}
 if ($decisions.Count -gt 0) {
   $decFile = Join-Path $OutDir "decisions-$sessionId.txt"
   $db = New-Object System.Text.StringBuilder
@@ -355,6 +365,10 @@ if ($decFile) {
   Write-Output "  사용자 결정  : $($decisions.Count) 건 (선택지 $($decisions.Count - $plainAcceptCount) · 평문수락 $plainAcceptCount) -> $decFile ($dsize bytes)  <- 지휘자 전용"
 } else {
   Write-Output "  사용자 결정  : 0 건"
+  if ($staleDecRemoved) {
+    Write-Warning "이번 실행 결정이 0건이라 이전 실행의 decisions 파일을 지웠다(옛 근거 오독 방지)."
+    Write-Warning "  -> 직전 실행에서는 결정이 잡혔다면 파서가 퇴행한 것이다. 위 경고들을 먼저 봐라."
+  }
 }
 if ($orphanAcceptCount -gt 0) {
   Write-Warning "수락 신호 $orphanAcceptCount 건에 직전 어시스턴트 발화가 없다. 무엇을 승낙한 건지 복원 불가 — '근거 없음' 판정 전에 트랜스크립트를 직접 봐라."
