@@ -95,6 +95,9 @@ $skippedSlash = 0
 $rejectCount = 0
 $sawRejectMarker = 0    # 마커를 본 레코드 수 — 수집 수와 벌어지면 파서가 새는 것이다
 $rejectLooseCount = 0   # 후행 래퍼를 못 찾아 끝까지 캡처한 수 — 오염 가능
+$sawDecisionMarker = 0  # tool_result 안에서 선택지 마커를 본 수 (파싱 후라 라인 기반보다 정확)
+$decisionKept = 0       # 형식 검사를 통과해 수집된 수
+$decisionRejected = 0   # 마커는 있으나 응답 형식이 아니라 버린 수 (인용·로그 오염)
 $sessionId = [IO.Path]::GetFileNameWithoutExtension($TranscriptPath)
 
 # 반려 지시 래퍼에서 사용자 원문만 도려내는 패턴.
@@ -221,8 +224,16 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
       $raw = if ($b.content -is [string]) { $b.content } else { ($b.content | Out-String) }
       $idx = $raw.IndexOf($decisionMarker)
       if ($idx -lt 0) { continue }
+      $sawDecisionMarker++
       $d = $raw.Substring($idx + $decisionMarker.Length).Trim()
-      if ($d) { [void]$decisions.Add([pscustomobject]@{ Kind = '선택지'; Text = $d; Ts = (Get-ShortTs $o.timestamp) }) }
+      if (-not $d) { continue }
+      # 정상 응답은 반드시 "질문"="고른라벨" 형태로 시작한다.
+      # 이 검사가 없으면 마커 문자열이 로그·코드·문서에 인용된 것까지 통째로 캡처된다 —
+      # 실측: 0.3.15 개발 중 찍은 경고문(마커가 변수로 전개됨)이 '사용자 결정'으로 수집됐다.
+      # 지휘자가 그걸 근거로 읽으면 없는 결정을 있다고 판단한다.
+      if (-not $d.StartsWith('"')) { $decisionRejected++; continue }
+      [void]$decisions.Add([pscustomobject]@{ Kind = '선택지'; Text = $d; Ts = (Get-ShortTs $o.timestamp) })
+      $decisionKept++
     }
     continue
   }
@@ -242,9 +253,20 @@ if ($turns.Count -eq 0) { Write-Error "사람이 친 발화를 하나도 못 뽑
 # fail-loud: 레코드는 있는데 수집이 0건이면 마커가 바뀐 것이다.
 # 조용히 0건이 되면 감사가 "근거 없음"으로 오판한다 — 그게 0.3.14 F4 거짓 고발의 기전이었다.
 # 여기서 죽이지는 않는다(원문 추출 자체는 유효하다). 대신 반드시 눈에 띄게 만든다.
-if ($sawAskUserQuestion -and $decisions.Count -eq 0) {
-  Write-Warning "AskUserQuestion 레코드는 감지됐는데 수집이 0건이다. 마커('$decisionMarker')가 바뀌었을 수 있다."
+# 마커 자체가 통째로 바뀐 경우 — tool_result 안에서도 못 찾으므로 도구명으로 감지한다(독립 신호).
+if ($sawAskUserQuestion -and $sawDecisionMarker -eq 0) {
+  Write-Warning "AskUserQuestion 레코드는 감지됐는데 마커를 한 건도 못 찾았다. 마커('$decisionMarker')가 바뀌었을 수 있다."
   Write-Warning "  -> 이 상태에서 '발화에 근거 없음' 판정을 내리지 마라. 선택지 응답이 통째로 안 보이는 중이다."
+}
+# 부분 유실 — 마커는 찾았는데 형식 검사에서도 안 걸리고 수집도 안 된 잔차.
+# 이전엔 Count -eq 0(전량 유실)만 봐서, 한 건만 살아남으면 나머지가 사라져도 조용했다.
+$decisionLost = $sawDecisionMarker - $decisionKept - $decisionRejected
+if ($decisionLost -gt 0) {
+  Write-Warning "선택지 마커 $sawDecisionMarker 건 중 $decisionLost 건이 수집도 배제도 안 된 채 사라졌다."
+  Write-Warning "  -> 파서가 새는 중이다. decisions 파일을 근거로 '결정 없음'을 단정하지 마라."
+}
+if ($decisionRejected -gt 0) {
+  Write-Warning "선택지 마커 $decisionRejected 건은 응답 형식이 아니라 배제했다(로그·문서에 인용된 마커로 보인다)."
 }
 
 # 반려 지시에도 같은 방어를 건다. 여긴 fail-loud 가 없어서 AskUserQuestion 쪽과 비대칭이었다.
