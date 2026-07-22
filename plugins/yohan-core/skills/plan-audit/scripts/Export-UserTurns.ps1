@@ -61,14 +61,32 @@ if (-not $TranscriptPath) {
   $candidates = @(Get-ChildItem -LiteralPath $sessionDir -Filter '*.jsonl' -File | Sort-Object LastWriteTime -Descending)
   if ($candidates.Count -eq 0) { Write-Error "jsonl 이 없다: $sessionDir"; exit 1 }
 
-  $TranscriptPath = $candidates[0].FullName
+  # ★ 현재 세션 ID 로 정확히 집는다. 하네스가 트랜스크립트 파일명과 같은 값을 넣어준다.
+  #   수정시각 최신을 고르는 방식은 병렬 세션이 있으면 남의 세션을 감사하게 된다 —
+  #   그 경우 "요구사항 전량 누락"이 나오고 원인을 찾기까지 한참 헤맨다.
+  $envSid = $env:CLAUDE_CODE_SESSION_ID
+  $picked = $null
+  if ($envSid) { $picked = $candidates | Where-Object { $_.BaseName -eq $envSid } | Select-Object -First 1 }
 
-  # 세션 재개(resume)로 원문이 분할됐을 수 있다 -> 경고만, 자동 병합은 v1 범위 밖.
+  if ($picked) {
+    $TranscriptPath = $picked.FullName
+  } else {
+    $TranscriptPath = $candidates[0].FullName
+    if ($envSid) {
+      Write-Warning "현재 세션 ID($envSid)에 해당하는 jsonl 이 없다. 수정시각 최신 파일로 폴백한다."
+      Write-Warning "  -> 다른 세션의 발화를 감사할 수 있다. 결과가 이상하면 -TranscriptPath 로 직접 지정해라."
+    } else {
+      Write-Warning "CLAUDE_CODE_SESSION_ID 가 비어 있다. 수정시각 최신 파일로 고른다(병렬 세션이면 틀릴 수 있다)."
+    }
+  }
+
+  # 세션 재개(resume)로 원문이 분할됐을 수 있다 -> 경고만, 자동 병합은 범위 밖.
+  # ID 로 정확히 집었어도 이전 조각은 다른 파일에 있으므로 경고는 그대로 유효하다.
   $recent = @($candidates | Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-24) })
   if ($recent.Count -ge 2) {
     Write-Warning "최근 24h 내 트랜스크립트가 $($recent.Count)개다. 세션이 재개돼 원문이 분할됐을 수 있다."
     $recent | ForEach-Object { Write-Warning ("  - {0}  ({1:yyyy-MM-dd HH:mm})" -f $_.Name, $_.LastWriteTime) }
-    Write-Warning "다른 파일을 쓰려면 -TranscriptPath 로 지정해라."
+    Write-Warning "  -> 이 감사의 기준선은 한 조각뿐이다. 앞 조각의 요구사항은 '누락'으로 보이니 그렇게 판정하지 마라."
   }
 }
 if (-not (Test-Path -LiteralPath $TranscriptPath)) { Write-Error "트랜스크립트가 없다: $TranscriptPath"; exit 1 }
