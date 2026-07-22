@@ -61,14 +61,32 @@ if (-not $TranscriptPath) {
   $candidates = @(Get-ChildItem -LiteralPath $sessionDir -Filter '*.jsonl' -File | Sort-Object LastWriteTime -Descending)
   if ($candidates.Count -eq 0) { Write-Error "jsonl 이 없다: $sessionDir"; exit 1 }
 
-  $TranscriptPath = $candidates[0].FullName
+  # ★ 현재 세션 ID 로 정확히 집는다. 하네스가 트랜스크립트 파일명과 같은 값을 넣어준다.
+  #   수정시각 최신을 고르는 방식은 병렬 세션이 있으면 남의 세션을 감사하게 된다 —
+  #   그 경우 "요구사항 전량 누락"이 나오고 원인을 찾기까지 한참 헤맨다.
+  $envSid = $env:CLAUDE_CODE_SESSION_ID
+  $picked = $null
+  if ($envSid) { $picked = $candidates | Where-Object { $_.BaseName -eq $envSid } | Select-Object -First 1 }
 
-  # 세션 재개(resume)로 원문이 분할됐을 수 있다 -> 경고만, 자동 병합은 v1 범위 밖.
+  if ($picked) {
+    $TranscriptPath = $picked.FullName
+  } else {
+    $TranscriptPath = $candidates[0].FullName
+    if ($envSid) {
+      Write-Warning "현재 세션 ID($envSid)에 해당하는 jsonl 이 없다. 수정시각 최신 파일로 폴백한다."
+      Write-Warning "  -> 다른 세션의 발화를 감사할 수 있다. 결과가 이상하면 -TranscriptPath 로 직접 지정해라."
+    } else {
+      Write-Warning "CLAUDE_CODE_SESSION_ID 가 비어 있다. 수정시각 최신 파일로 고른다(병렬 세션이면 틀릴 수 있다)."
+    }
+  }
+
+  # 세션 재개(resume)로 원문이 분할됐을 수 있다 -> 경고만, 자동 병합은 범위 밖.
+  # ID 로 정확히 집었어도 이전 조각은 다른 파일에 있으므로 경고는 그대로 유효하다.
   $recent = @($candidates | Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-24) })
   if ($recent.Count -ge 2) {
     Write-Warning "최근 24h 내 트랜스크립트가 $($recent.Count)개다. 세션이 재개돼 원문이 분할됐을 수 있다."
     $recent | ForEach-Object { Write-Warning ("  - {0}  ({1:yyyy-MM-dd HH:mm})" -f $_.Name, $_.LastWriteTime) }
-    Write-Warning "다른 파일을 쓰려면 -TranscriptPath 로 지정해라."
+    Write-Warning "  -> 이 감사의 기준선은 한 조각뿐이다. 앞 조각의 요구사항은 '누락'으로 보이니 그렇게 판정하지 마라."
   }
 }
 if (-not (Test-Path -LiteralPath $TranscriptPath)) { Write-Error "트랜스크립트가 없다: $TranscriptPath"; exit 1 }
@@ -95,6 +113,8 @@ $skippedSlash = 0
 $rejectCount = 0
 $sawRejectMarker = 0    # 마커를 본 레코드 수 — 수집 수와 벌어지면 파서가 새는 것이다
 $rejectLooseCount = 0   # 후행 래퍼를 못 찾아 끝까지 캡처한 수 — 오염 가능
+$jsonFailUser = 0       # 수집 후보인데 JSON 파싱이 깨진 줄 — 그 발화는 통째로 사라진다
+$jsonFailAssistant = 0  # 어시스턴트 줄 파싱 실패 — 평문 수락의 대상 복원만 영향
 $sawDecisionMarker = 0  # tool_result 안에서 선택지 마커를 본 수 (파싱 후라 라인 기반보다 정확)
 $decisionKept = 0       # 형식 검사를 통과해 수집된 수
 $decisionRejected = 0   # 마커는 있으나 응답 형식이 아니라 버린 수 (인용·로그 오염)
@@ -130,7 +150,7 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
     # 안 자르면 긴 세션에서 파싱 비용이 선형으로 붙는다.
     if ($line.Length -lt 60000) {
       $a = $null
-      try { $a = $line | ConvertFrom-Json } catch { $a = $null }
+      try { $a = $line | ConvertFrom-Json } catch { $a = $null; $jsonFailAssistant++ }
       if ($a -and $a.type -eq 'assistant' -and $a.message.content -and -not $a.isSidechain) {
         $at = ''
         foreach ($ab in $a.message.content) { if ($ab.type -eq 'text') { $at += $ab.text } }
@@ -144,7 +164,6 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
   # 값싼 선필터: 거대한 tool_result 라인을 파싱조차 하지 않는다.
   # ★ 반려 지시 라인에는 promptSource 키가 아예 없다 — 그래서 두 조건을 OR 로 본다.
   #   (이 프리필터를 promptSource 단독으로 두면 반려 지시가 통째로 유실된다)
-  if ($line -like '*"promptSource"*') { $sawPromptSource = $true }
   # fail-loud 용 관측: 마커가 바뀌어도 "레코드는 있었다"는 사실은 남는다.
   if ($line -like '*AskUserQuestion*') { $sawAskUserQuestion = $true }
 
@@ -153,9 +172,15 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
   $isDecision = $line -like "*$decisionMarker*"
   if (-not ($isTyped -or $isReject -or $isDecision)) { continue }
 
-  try { $o = $line | ConvertFrom-Json } catch { continue }
+  # ★ 여기서 실패하면 수집 후보 발화가 통째로 사라진다. 조용히 넘기면 그 유실을 아무도 모른다.
+  try { $o = $line | ConvertFrom-Json } catch { $jsonFailUser++; continue }
   if ($o.type -ne 'user') { continue }
   if ($o.isSidechain) { continue }
+
+  # 스키마 관측은 반드시 파싱 후에. 라인 문자열로 보면 사용자가 "promptSource" 를 발화에
+  # 인용하거나 어시스턴트가 코드를 출력한 것만으로 켜져서, 필드가 실제로 사라져도
+  # fail-loud 가 안 터진다. 실측(C4)에서 반려 마커가 같은 방식으로 33 대 4 오탐을 냈다.
+  if ($null -ne $o.promptSource) { $sawPromptSource = $true }
 
   $c = $o.message.content
   $text = ''
@@ -166,7 +191,11 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
       $text = $c
     } elseif ($c) {
       # 배열이면 text 블록만. image(base64) 는 버린다.
-      foreach ($b in $c) { if ($b.type -eq 'text') { $text += $b.text } }
+      # 블록 사이는 개행으로 잇는다 — 그냥 이으면 앞 블록 끝 단어와 뒤 블록 첫 단어가
+      # 붙어서 없던 낱말이 생긴다. verbatim 을 표방하면서 원문을 바꾸는 셈이었다.
+      $parts = @()
+      foreach ($b in $c) { if ($b.type -eq 'text' -and $b.text) { $parts += $b.text } }
+      $text = ($parts -join "`n")
     }
     $text = $text.Trim()
     if (-not $text) { continue }
@@ -194,24 +223,34 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
 
   } elseif ($isReject) {
     # (2) 반려 지시 — tool_result 안에 래퍼로 묻혀 있다.
+    #     ★ 한 레코드에 tool_result 가 여럿일 수 있고, 한 raw 안에 래퍼가 여럿일 수도 있다.
+    #       예전엔 $text 를 덮어쓰고 레코드당 한 번만 담아서 나머지가 조용히 사라졌다.
+    #       여기서 바로 담고 분기를 끝낸다.
     if (-not $c -or ($c -is [string])) { continue }
+    $ts = Get-ShortTs $o.timestamp
     foreach ($b in $c) {
       if ($b.type -ne 'tool_result') { continue }
       $raw = if ($b.content -is [string]) { $b.content } else { ($b.content | Out-String) }
       if ($raw -notlike "*$rejectMarker*") { continue }
       # ★ 여기서 센다. 프리필터(파싱 전)에서 세면 어시스턴트가 마커 문자열을 인용한 라인까지
       #   걸려서 거짓 경보가 난다 — 실측으로 이 세션에서 33 대 4 로 오탐이 났다.
-      $sawRejectMarker++
-      $m = $rejectRegexStrict.Match($raw)
-      if ($m.Success) {
-        $text = $m.Groups[1].Value.Trim()
+      $sawRejectMarker += [regex]::Matches($raw, [regex]::Escape($rejectMarker)).Count
+
+      $ms = $rejectRegexStrict.Matches($raw)
+      if ($ms.Count -gt 0) {
+        foreach ($mm in $ms) {
+          $t = $mm.Groups[1].Value.Trim()
+          if ($t) { [void]$turns.Add([pscustomobject]@{ Text = $t; Ts = $ts }); $rejectCount++ }
+        }
       } else {
         $m2 = $rejectRegexLoose.Match($raw)
-        if ($m2.Success) { $text = $m2.Groups[1].Value.Trim(); $rejectLooseCount++ }
+        if ($m2.Success) {
+          $t = $m2.Groups[1].Value.Trim()
+          if ($t) { [void]$turns.Add([pscustomobject]@{ Text = $t; Ts = $ts }); $rejectCount++; $rejectLooseCount++ }
+        }
       }
     }
-    if (-not $text) { continue }
-    $rejectCount++
+    continue
 
   } else {
     # (3) 선택지 응답 — AskUserQuestion. decisions 로만 빠지고 turns 에는 절대 안 들어간다.
@@ -269,6 +308,16 @@ if ($decisionRejected -gt 0) {
   Write-Warning "선택지 마커 $decisionRejected 건은 응답 형식이 아니라 배제했다(로그·문서에 인용된 마커로 보인다)."
 }
 
+# JSON 파싱 실패. 잘린 마지막 줄·손상 레코드·PS5.1 이 못 먹는 형태에서 난다.
+# 프리필터를 통과한 줄만 파싱하므로 여기서 깨진 건 전부 "수집 후보였던 발화"다.
+if ($jsonFailUser -gt 0) {
+  Write-Warning "수집 후보 $jsonFailUser 줄이 JSON 파싱에 실패해 통째로 빠졌다."
+  Write-Warning "  -> 기준선에 구멍이 있다. '요구사항 없음'·'근거 없음' 판정을 내리지 마라."
+}
+if ($jsonFailAssistant -gt 0) {
+  Write-Warning "어시스턴트 $jsonFailAssistant 줄이 파싱에 실패했다. 그 구간의 평문 수락은 대상 복원이 안 된다."
+}
+
 # 반려 지시에도 같은 방어를 건다. 여긴 fail-loud 가 없어서 AskUserQuestion 쪽과 비대칭이었다.
 # 반려 지시는 이 스킬의 핵심 입력이라(계획을 왜 되돌렸는지가 여기 있다) 유실이 더 비싸다.
 #
@@ -308,6 +357,16 @@ for ($i = 0; $i -lt $turns.Count; $i++) {
 
 # 선택지 응답은 별도 파일. ★ critic 프롬프트에 섞이면 블라인드가 깨진다 — 파일이 갈려 있어야 실수로도 안 섞인다.
 $decFile = $null
+$staleDecRemoved = $false
+if ($decisions.Count -eq 0) {
+  # 이번 실행에서 0건인데 같은 세션의 옛 파일이 남아 있으면, 지휘자가 지난 실행의 결정을
+  # 이번 근거로 읽는다. 파서가 퇴행했을 때 특히 위험하다 — 유실을 옛 데이터가 가려버린다.
+  $oldDec = Join-Path $OutDir "decisions-$sessionId.txt"
+  if (Test-Path -LiteralPath $oldDec) {
+    Remove-Item -LiteralPath $oldDec -Force -EA SilentlyContinue
+    $staleDecRemoved = $true
+  }
+}
 if ($decisions.Count -gt 0) {
   $decFile = Join-Path $OutDir "decisions-$sessionId.txt"
   $db = New-Object System.Text.StringBuilder
@@ -332,6 +391,10 @@ if ($decFile) {
   Write-Output "  사용자 결정  : $($decisions.Count) 건 (선택지 $($decisions.Count - $plainAcceptCount) · 평문수락 $plainAcceptCount) -> $decFile ($dsize bytes)  <- 지휘자 전용"
 } else {
   Write-Output "  사용자 결정  : 0 건"
+  if ($staleDecRemoved) {
+    Write-Warning "이번 실행 결정이 0건이라 이전 실행의 decisions 파일을 지웠다(옛 근거 오독 방지)."
+    Write-Warning "  -> 직전 실행에서는 결정이 잡혔다면 파서가 퇴행한 것이다. 위 경고들을 먼저 봐라."
+  }
 }
 if ($orphanAcceptCount -gt 0) {
   Write-Warning "수락 신호 $orphanAcceptCount 건에 직전 어시스턴트 발화가 없다. 무엇을 승낙한 건지 복원 불가 — '근거 없음' 판정 전에 트랜스크립트를 직접 봐라."
