@@ -164,7 +164,6 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
   # 값싼 선필터: 거대한 tool_result 라인을 파싱조차 하지 않는다.
   # ★ 반려 지시 라인에는 promptSource 키가 아예 없다 — 그래서 두 조건을 OR 로 본다.
   #   (이 프리필터를 promptSource 단독으로 두면 반려 지시가 통째로 유실된다)
-  if ($line -like '*"promptSource"*') { $sawPromptSource = $true }
   # fail-loud 용 관측: 마커가 바뀌어도 "레코드는 있었다"는 사실은 남는다.
   if ($line -like '*AskUserQuestion*') { $sawAskUserQuestion = $true }
 
@@ -177,6 +176,11 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
   try { $o = $line | ConvertFrom-Json } catch { $jsonFailUser++; continue }
   if ($o.type -ne 'user') { continue }
   if ($o.isSidechain) { continue }
+
+  # 스키마 관측은 반드시 파싱 후에. 라인 문자열로 보면 사용자가 "promptSource" 를 발화에
+  # 인용하거나 어시스턴트가 코드를 출력한 것만으로 켜져서, 필드가 실제로 사라져도
+  # fail-loud 가 안 터진다. 실측(C4)에서 반려 마커가 같은 방식으로 33 대 4 오탐을 냈다.
+  if ($null -ne $o.promptSource) { $sawPromptSource = $true }
 
   $c = $o.message.content
   $text = ''
