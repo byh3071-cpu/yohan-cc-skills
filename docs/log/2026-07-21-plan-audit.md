@@ -481,3 +481,26 @@ Codex가 지적하지 않았는데 고치다가 실측으로 나왔다.
 ### 남은 미검증 1개
 
 **블라인드 경로(2-C critic)** 만 남았다. 이번 시험에서 내가 스킵시켰기 때문에, critic이 계획을 모르는 상태로 요구사항을 독립 추출하는 부분은 아직 실전 확인이 없다. 실제 감사를 한 번 완주해야 나온다.
+
+---
+
+## 산출물 포인터 갱신 (`0.3.18` 기준)
+
+이 문서 위쪽 **"산출물 포인터"** 절은 `0.3.10` 시점에 쓴 것이라 지금과 다르다. append-only라 원문은 두고 여기서 갱신한다.
+
+| 항목 | 옛 기록 (`:52` 부근) | `0.3.18` 실제 |
+|---|---|---|
+| 파싱 루프 위치 | `Export-UserTurns.ps1:60` | **`:145`** (헬퍼·카운터·마커 추가로 밀림) |
+| 수집 분기 | "직접입력/반려지시 **2종**" | **3종** — + 선택지 응답(`AskUserQuestion`) |
+| 산출물 | `requests-<sid>.txt` 하나 | **둘** — `requests`(critic용) + `decisions`(지휘자 전용) |
+
+**진입점은 그대로다:** `plugins/yohan-core/skills/plan-audit/SKILL.md`
+
+| 경로 | 역할 |
+|---|---|
+| `skills/plan-audit/SKILL.md` | 감사 절차 SoT — 절차 0(stale plan 차단)·3(시각 경계·평문 수락 대조)이 오늘 추가분 |
+| `skills/plan-audit/scripts/Export-UserTurns.ps1` | 3종 수집 + fail-loud 6종. 세션은 `CLAUDE_CODE_SESSION_ID` 로 확정 선택 |
+| `$env:TEMP\plan-audit\requests-<sid>.txt` | 블라인드 기준선. **critic 에 주는 것** |
+| `$env:TEMP\plan-audit\decisions-<sid>.txt` | 선택지 + 평문 수락. **critic 에 절대 금지** |
+
+**다음 세션이 알아야 할 것 한 줄:** 감사 전에 `TURN` 시각으로 작업 경계를 긋지 않으면, 한 세션에 작업이 여럿일 때 이전 작업 요구사항이 전부 "누락"으로 잡혀 자동 불통과가 난다.
