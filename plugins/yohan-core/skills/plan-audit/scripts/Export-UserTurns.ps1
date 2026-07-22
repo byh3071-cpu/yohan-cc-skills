@@ -37,7 +37,12 @@ param(
   # 이 길이 이하의 발화를 "내용 없는 수락 신호"로 보고 직전 어시스턴트 제안을 함께 수집한다.
   # 12 = 'ㅇㅇ'·'A'·'머지해'·'그래 그렇게 해'를 덮는 실측 폭. 넓게 잡아 노이즈를 내는 쪽이
   # 좁게 잡아 근거를 잃는 쪽보다 낫다 — decisions 는 지휘자만 읽으므로 노이즈 비용이 싸다.
-  [int]$AcceptSignalMaxLen = 12
+  [int]$AcceptSignalMaxLen = 12,
+  # 엔진: auto|claude|cursor. auto 는 CC 세션 환경변수·Cursor agent-transcripts 유무로 고른다.
+  [ValidateSet('auto', 'claude', 'cursor')]
+  [string]$Engine = 'auto',
+  # Cursor projects 루트. 기본 ~/.cursor/projects
+  [string]$CursorProjectDir = (Join-Path $env:USERPROFILE '.cursor\projects')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,7 +52,178 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false } c
 
 $projectsRoot = Join-Path $env:USERPROFILE '.claude\projects'
 
-# --- 1. 트랜스크립트 찾기 -------------------------------------------------
+# 트랜스크립트 timestamp(ISO8601 UTC)에서 밀리초만 떼어낸다. 정렬 가능성은 그대로 유지.
+# 한 세션에 여러 작업이 섞이므로 지휘자가 "어디부터가 현재 계획인가"를 이걸로 가른다.
+function Get-ShortTs {
+  param([string]$Ts)
+  if (-not $Ts) { return '????-??-??T??:??:??Z' }   # 방어: 스키마에서 사라져도 자리를 비우지 않는다
+  $i = $Ts.IndexOf('.')
+  if ($i -gt 0) { return $Ts.Substring(0, $i) + 'Z' }
+  return $Ts
+}
+
+function Test-CursorAgentTranscriptsExist {
+  param([string]$Root)
+  if (-not $Root -or -not (Test-Path -LiteralPath $Root)) { return $false }
+  $hit = Get-ChildItem -LiteralPath $Root -Directory -EA SilentlyContinue |
+    ForEach-Object {
+      $at = Join-Path $_.FullName 'agent-transcripts'
+      if (Test-Path -LiteralPath $at) {
+        Get-ChildItem -LiteralPath $at -Recurse -Filter '*.jsonl' -File -EA SilentlyContinue |
+          Select-Object -First 1
+      }
+    } |
+    Select-Object -First 1
+  return [bool]$hit
+}
+
+function Resolve-NewestCursorTranscript {
+  param([string]$Root)
+  if (-not $Root -or -not (Test-Path -LiteralPath $Root)) { return $null }
+  $cands = @(
+    Get-ChildItem -LiteralPath $Root -Directory -EA SilentlyContinue |
+      ForEach-Object {
+        $at = Join-Path $_.FullName 'agent-transcripts'
+        if (Test-Path -LiteralPath $at) {
+          Get-ChildItem -LiteralPath $at -Recurse -Filter '*.jsonl' -File -EA SilentlyContinue
+        }
+      }
+  )
+  if ($cands.Count -eq 0) { return $null }
+  return ($cands | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+}
+
+# --- 0. 엔진 결정 ----------------------------------------------------------
+$resolvedEngine = $Engine
+if ($Engine -eq 'auto') {
+  if ($env:CLAUDE_CODE_SESSION_ID) {
+    $resolvedEngine = 'claude'
+  } elseif (Test-CursorAgentTranscriptsExist -Root $CursorProjectDir) {
+    $looksCursor = $TranscriptPath -and ($TranscriptPath -match '[\\/]agent-transcripts[\\/]')
+    $slug = ((Get-Location).Path -replace '[\\/:]', '-')
+    $ccSessionDir = Join-Path $projectsRoot $slug
+    $hasCcSession = Test-Path -LiteralPath $ccSessionDir
+    if ($looksCursor -or -not $hasCcSession) {
+      $resolvedEngine = 'cursor'
+    } else {
+      $resolvedEngine = 'claude'
+    }
+  } else {
+    $resolvedEngine = 'claude'
+  }
+}
+
+# --- Cursor 엔진 -----------------------------------------------------------
+if ($resolvedEngine -eq 'cursor') {
+  if (-not $TranscriptPath) {
+    $TranscriptPath = Resolve-NewestCursorTranscript -Root $CursorProjectDir
+    if (-not $TranscriptPath) {
+      Write-Error "Cursor agent-transcripts jsonl 을 못 찾았다: $CursorProjectDir`n-TranscriptPath 로 jsonl 경로를 직접 지정해라."
+      exit 1
+    }
+  }
+  if (-not (Test-Path -LiteralPath $TranscriptPath)) {
+    Write-Error "트랜스크립트가 없다: $TranscriptPath"
+    exit 1
+  }
+
+  $turns = New-Object System.Collections.ArrayList
+  $skippedBoiler = 0
+  $jsonFailUser = 0
+  $sessionId = [IO.Path]::GetFileNameWithoutExtension($TranscriptPath)
+  $userQueryRegex = [regex]::new('<user_query>\s*(.*?)\s*</user_query>', [Text.RegularExpressions.RegexOptions]::Singleline)
+  $tsRegex = [regex]::new('<timestamp>\s*(.*?)\s*</timestamp>', [Text.RegularExpressions.RegexOptions]::Singleline)
+  $boilerPrefixes = @(
+    'The beginning of the above subagent',
+    'Briefly inform the user about the task result'
+  )
+
+  foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) {
+    if (-not $line -or $line.Length -lt 10) { continue }
+    $o = $null
+    try { $o = $line | ConvertFrom-Json } catch { $jsonFailUser++; continue }
+    if (-not $o -or $o.role -ne 'user') { continue }
+
+    $text = ''
+    $c = $o.message.content
+    if ($c -is [string]) {
+      $text = $c
+    } elseif ($c) {
+      $parts = @()
+      foreach ($b in $c) {
+        if ($b.type -eq 'text' -and $b.text) { $parts += $b.text }
+        elseif ($b -is [string]) { $parts += $b }
+      }
+      $text = ($parts -join "`n")
+    }
+    $text = $text.Trim()
+    if (-not $text) { continue }
+
+    $ts = '????-??-??T??:??:??Z'
+    $tm = $tsRegex.Match($text)
+    if ($tm.Success) { $ts = $tm.Groups[1].Value.Trim() }
+
+    $qm = $userQueryRegex.Match($text)
+    if ($qm.Success) { $text = $qm.Groups[1].Value.Trim() }
+
+    $isBoiler = $false
+    foreach ($bp in $boilerPrefixes) {
+      if ($text.StartsWith($bp)) { $isBoiler = $true; break }
+    }
+    if ($isBoiler) { $skippedBoiler++; continue }
+    if (-not $text) { continue }
+
+    [void]$turns.Add([pscustomobject]@{ Text = $text; Ts = $ts })
+  }
+
+  if ($turns.Count -eq 0) {
+    Write-Error "사람이 친 발화를 하나도 못 뽑았다: $TranscriptPath"
+    exit 1
+  }
+
+  if (-not (Test-Path -LiteralPath $OutDir)) { New-Item -ItemType Directory -Path $OutDir -Force | Out-Null }
+  foreach ($pat in @('requests-*.txt', 'decisions-*.txt')) {
+    Get-ChildItem -LiteralPath $OutDir -Filter $pat -File -EA SilentlyContinue |
+      Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-7) } |
+      Remove-Item -Force -EA SilentlyContinue
+  }
+
+  $outFile = Join-Path $OutDir "requests-$sessionId.txt"
+  $sb = New-Object System.Text.StringBuilder
+  [void]$sb.AppendLine('# 시각은 트랜스크립트 <timestamp> (있을 때). 한 세션에 여러 작업이 섞일 수 있다 — 전부 현재 계획의 요구사항은 아니다.')
+  [void]$sb.AppendLine('# engine=cursor')
+  [void]$sb.AppendLine()
+  for ($i = 0; $i -lt $turns.Count; $i++) {
+    [void]$sb.AppendLine("--- TURN $($i + 1) [$($turns[$i].Ts)] ---")
+    [void]$sb.AppendLine($turns[$i].Text)
+    [void]$sb.AppendLine()
+  }
+  [IO.File]::WriteAllText($outFile, $sb.ToString(), (New-Object System.Text.UTF8Encoding $false))
+
+  # Cursor 에 AskUserQuestion 채널 없음 — decisions 는 best-effort/absent 노트만.
+  $decFile = Join-Path $OutDir "decisions-$sessionId.txt"
+  $db = New-Object System.Text.StringBuilder
+  [void]$db.AppendLine('# 지휘자 전용 — critic 에게 주지 마라')
+  [void]$db.AppendLine('# engine=cursor — AskUserQuestion 채널은 best-effort/absent (Cursor 트랜스크립트에 선택지 응답 스키마 없음)')
+  [void]$db.AppendLine()
+  [IO.File]::WriteAllText($decFile, $db.ToString(), (New-Object System.Text.UTF8Encoding $false))
+
+  $size = (Get-Item -LiteralPath $outFile).Length
+  $dsize = (Get-Item -LiteralPath $decFile).Length
+  Write-Output "추출 완료"
+  Write-Output "  엔진         : cursor"
+  Write-Output "  트랜스크립트 : $TranscriptPath"
+  Write-Output "  사람 발화    : $($turns.Count) 턴"
+  Write-Output "  보일러 제외  : $skippedBoiler 건"
+  if ($jsonFailUser -gt 0) {
+    Write-Warning "수집 후보 $jsonFailUser 줄이 JSON 파싱에 실패해 통째로 빠졌다."
+  }
+  Write-Output "  기준선       : $outFile ($size bytes)  <- critic 에 주는 것"
+  Write-Output "  사용자 결정  : 0 건 (cursor best-effort) -> $decFile ($dsize bytes)  <- 지휘자 전용"
+  exit 0
+}
+
+# --- 1. 트랜스크립트 찾기 (claude) ----------------------------------------
 if (-not $TranscriptPath) {
   # CC 슬러그 규칙: 경로의 ':' 와 '\' '/' 를 '-' 로 치환. (예: C:\Users\Public\dev\x -> C--Users-Public-dev-x)
   $slug = ((Get-Location).Path -replace '[\\/:]', '-')
@@ -91,19 +267,9 @@ if (-not $TranscriptPath) {
 }
 if (-not (Test-Path -LiteralPath $TranscriptPath)) { Write-Error "트랜스크립트가 없다: $TranscriptPath"; exit 1 }
 
-# --- 2. 파싱 --------------------------------------------------------------
+# --- 2. 파싱 (claude) -----------------------------------------------------
 # 줄 단위 스트리밍 + 인코딩 명시.
 # Get-Content -Raw 는 장기 세션에서 메모리가 무너지고, switch -File 은 인코딩 파라미터가 없어 CP949 로 오독한다.
-
-# 트랜스크립트 timestamp(ISO8601 UTC)에서 밀리초만 떼어낸다. 정렬 가능성은 그대로 유지.
-# 한 세션에 여러 작업이 섞이므로 지휘자가 "어디부터가 현재 계획인가"를 이걸로 가른다.
-function Get-ShortTs {
-  param([string]$Ts)
-  if (-not $Ts) { return '????-??-??T??:??:??Z' }   # 방어: 스키마에서 사라져도 자리를 비우지 않는다
-  $i = $Ts.IndexOf('.')
-  if ($i -gt 0) { return $Ts.Substring(0, $i) + 'Z' }
-  return $Ts
-}
 
 $turns = New-Object System.Collections.ArrayList
 $decisions = New-Object System.Collections.ArrayList
