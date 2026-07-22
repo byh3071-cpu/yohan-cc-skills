@@ -79,7 +79,17 @@ LLM이 필요 없다. 판단이 안 들어가므로 서브에이전트로 돌리
 ```bash
 for p in <경로들>; do if [ -e "$p" ]; then echo "OK   $p"; else echo "MISS $p"; fi; done
 ```
-심볼은 `Grep`으로 직접 확인한다.
+심볼은 `Grep`으로 확인하되 **정의를 찾아라. 이름이 나오는 것만으로 통과시키지 마라.**
+
+문서·주석·호출부·문자열 안에 이름만 있어도 검색은 걸린다. 계획이 "`Get-ShortTs` 를 쓴다"고 했는데 실제로는 주석에만 있는 경우, 이름 검색은 통과하고 계획은 깨진다.
+
+| 대상 | 정의 패턴 |
+|---|---|
+| PowerShell 함수 | `^function\s+Name` · `^\s*\$Name\s*=` |
+| JS/TS | `(function\|const\|let\|class)\s+Name` · `export .*Name` |
+| 스킬·문서 앵커 | `^#+ .*Name` · frontmatter `name:` |
+
+대소문자도 그대로 맞춰라 — `-i` 를 붙여 찾은 건 "있다"의 근거가 아니다.
 
 ### 2-B. 인용 검증 — explorer(haiku) 위임
 
