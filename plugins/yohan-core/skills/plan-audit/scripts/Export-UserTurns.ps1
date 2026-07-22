@@ -33,7 +33,11 @@ param(
   # 트랜스크립트 jsonl 경로. 생략하면 현재 디렉터리 슬러그에서 최신 파일 자동 선택.
   [string]$TranscriptPath,
   # 산출물 디렉터리. 기본 $env:TEMP\plan-audit
-  [string]$OutDir = (Join-Path $env:TEMP 'plan-audit')
+  [string]$OutDir = (Join-Path $env:TEMP 'plan-audit'),
+  # 이 길이 이하의 발화를 "내용 없는 수락 신호"로 보고 직전 어시스턴트 제안을 함께 수집한다.
+  # 12 = 'ㅇㅇ'·'A'·'머지해'·'그래 그렇게 해'를 덮는 실측 폭. 넓게 잡아 노이즈를 내는 쪽이
+  # 좁게 잡아 근거를 잃는 쪽보다 낫다 — decisions 는 지휘자만 읽으므로 노이즈 비용이 싸다.
+  [int]$AcceptSignalMaxLen = 12
 )
 
 $ErrorActionPreference = 'Stop'
@@ -103,7 +107,29 @@ $rejectRegex = [regex]::new(
 # ⚠ 하네스 내부 문자열이라 예고 없이 바뀔 수 있다 -> 아래 fail-loud 로 방어한다.
 $decisionMarker = 'Your questions have been answered:'
 
+$lastAssistantText = ''   # 직전 어시스턴트 평문 발화 — 수락 신호의 대상을 복원하는 유일한 단서
+$plainAcceptCount = 0
+$orphanAcceptCount = 0
+
 foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) {
+  # 어시스턴트 평문 발화를 따라다닌다. 사용자가 'ㅇㅇ'로 승낙하면 그 내용은 여기에만 있다.
+  # AskUserQuestion 이 아닌 평문 제안은 decisions 채널로 안 잡혀서 0.3.15 가 절반만 고친 상태였다.
+  if ($line -like '*"assistant"*') {
+    # 60KB 초과는 tool_use 덩어리다. 평문 답변은 그보다 훨씬 작아서 잘라도 잃는 게 없고,
+    # 안 자르면 긴 세션에서 파싱 비용이 선형으로 붙는다.
+    if ($line.Length -lt 60000) {
+      $a = $null
+      try { $a = $line | ConvertFrom-Json } catch { $a = $null }
+      if ($a -and $a.type -eq 'assistant' -and $a.message.content -and -not $a.isSidechain) {
+        $at = ''
+        foreach ($ab in $a.message.content) { if ($ab.type -eq 'text') { $at += $ab.text } }
+        $at = $at.Trim()
+        if ($at) { $lastAssistantText = $at }
+      }
+    }
+    continue
+  }
+
   # 값싼 선필터: 거대한 tool_result 라인을 파싱조차 하지 않는다.
   # ★ 반려 지시 라인에는 promptSource 키가 아예 없다 — 그래서 두 조건을 OR 로 본다.
   #   (이 프리필터를 promptSource 단독으로 두면 반려 지시가 통째로 유실된다)
@@ -136,6 +162,25 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
     # 슬래시커맨드 입력도 promptSource=typed 로 잡힌다. 요구사항이 아니므로 기준선에서 뺀다.
     if ($text -match '^/') { $skippedSlash++; continue }
 
+    # 내용 없는 수락 신호 — 무엇을 승낙한 건지는 직전 어시스턴트 발화에만 있다.
+    # requests 에는 신호 그대로 남기고(발화니까), 대상 복원용 사본만 decisions 로 뺀다.
+    if ($text.Length -le $AcceptSignalMaxLen) {
+      if ($lastAssistantText) {
+        # 지휘자 컨텍스트를 지키려고 자른다. 제안의 요지는 앞쪽에 있다(두괄식 규율).
+        # 실측: 이 세션 16건 × 2000자 = 33KB 로 불어 지휘자가 매번 읽기 부담이었다. 1000 으로 낮춘다.
+        $ctx = if ($lastAssistantText.Length -gt 1000) { $lastAssistantText.Substring(0, 1000) + "`n…(이하 생략 — 전문은 트랜스크립트)" } else { $lastAssistantText }
+        [void]$decisions.Add([pscustomobject]@{
+          Kind = '평문 수락'
+          Text = "사용자 응답: $text`n`n[직전 어시스턴트 제안]`n$ctx"
+          Ts   = (Get-ShortTs $o.timestamp)
+        })
+        $plainAcceptCount++
+      } else {
+        # 직전 발화가 없다 = 세션 첫 발화이거나 파싱을 놓쳤다. 조용히 넘기지 않고 센다.
+        $orphanAcceptCount++
+      }
+    }
+
   } elseif ($isReject) {
     # (2) 반려 지시 — tool_result 안에 래퍼로 묻혀 있다.
     if (-not $c -or ($c -is [string])) { continue }
@@ -161,7 +206,7 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
       $idx = $raw.IndexOf($decisionMarker)
       if ($idx -lt 0) { continue }
       $d = $raw.Substring($idx + $decisionMarker.Length).Trim()
-      if ($d) { [void]$decisions.Add([pscustomobject]@{ Text = $d; Ts = (Get-ShortTs $o.timestamp) }) }
+      if ($d) { [void]$decisions.Add([pscustomobject]@{ Kind = '선택지'; Text = $d; Ts = (Get-ShortTs $o.timestamp) }) }
     }
     continue
   }
@@ -215,7 +260,7 @@ if ($decisions.Count -gt 0) {
   [void]$db.AppendLine('# 지휘자 전용 — critic 에게 주지 마라 (선택 라벨에 어시스턴트 제안 요지가 들어 있다)')
   [void]$db.AppendLine()
   for ($i = 0; $i -lt $decisions.Count; $i++) {
-    [void]$db.AppendLine("--- DECISION $($i + 1) [$($decisions[$i].Ts)] ---")
+    [void]$db.AppendLine("--- DECISION $($i + 1) [$($decisions[$i].Ts)] ($($decisions[$i].Kind)) ---")
     [void]$db.AppendLine($decisions[$i].Text)
     [void]$db.AppendLine()
   }
@@ -230,8 +275,11 @@ Write-Output "  슬래시 제외  : $skippedSlash 건"
 Write-Output "  기준선       : $outFile ($size bytes)  <- critic 에 주는 것"
 if ($decFile) {
   $dsize = (Get-Item -LiteralPath $decFile).Length
-  Write-Output "  선택지 결정  : $($decisions.Count) 건 -> $decFile ($dsize bytes)  <- 지휘자 전용"
+  Write-Output "  사용자 결정  : $($decisions.Count) 건 (선택지 $($decisions.Count - $plainAcceptCount) · 평문수락 $plainAcceptCount) -> $decFile ($dsize bytes)  <- 지휘자 전용"
 } else {
-  Write-Output "  선택지 결정  : 0 건"
+  Write-Output "  사용자 결정  : 0 건"
+}
+if ($orphanAcceptCount -gt 0) {
+  Write-Warning "수락 신호 $orphanAcceptCount 건에 직전 어시스턴트 발화가 없다. 무엇을 승낙한 건지 복원 불가 — '근거 없음' 판정 전에 트랜스크립트를 직접 봐라."
 }
 exit 0
