@@ -93,13 +93,21 @@ $sawPromptSource = $false
 $sawAskUserQuestion = $false
 $skippedSlash = 0
 $rejectCount = 0
+$sawRejectMarker = 0    # 마커를 본 레코드 수 — 수집 수와 벌어지면 파서가 새는 것이다
+$rejectLooseCount = 0   # 후행 래퍼를 못 찾아 끝까지 캡처한 수 — 오염 가능
 $sessionId = [IO.Path]::GetFileNameWithoutExtension($TranscriptPath)
 
 # 반려 지시 래퍼에서 사용자 원문만 도려내는 패턴.
 # 실제 형태: "... To tell you how to proceed, the user said:\n<원문>\n\nNote: The user's next message ..."
 $rejectMarker = 'To tell you how to proceed, the user said:'
-$rejectRegex = [regex]::new(
-  'To tell you how to proceed, the user said:\s*\r?\n(.*?)(?:\r?\n\r?\nNote: The user''s next message|\s*$)',
+# 후행 래퍼까지 정확히 잘라내는 패턴. 이게 매치되면 오염이 없다.
+$rejectRegexStrict = [regex]::new(
+  'To tell you how to proceed, the user said:\s*\r?\n(.*?)\r?\n\r?\nNote: The user''s next message',
+  [Text.RegularExpressions.RegexOptions]::Singleline)
+# 폴백. 후행 래퍼 문구가 바뀌면 strict 가 실패하는데, 여기서 끝까지 캡처하면
+# 바뀐 래퍼 문구까지 사용자 발화로 섞인다 -> 반드시 세서 경고한다(조용히 오염되면 안 된다).
+$rejectRegexLoose = [regex]::new(
+  'To tell you how to proceed, the user said:\s*\r?\n(.*)$',
   [Text.RegularExpressions.RegexOptions]::Singleline)
 
 # AskUserQuestion 응답 래퍼.
@@ -188,8 +196,16 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
       if ($b.type -ne 'tool_result') { continue }
       $raw = if ($b.content -is [string]) { $b.content } else { ($b.content | Out-String) }
       if ($raw -notlike "*$rejectMarker*") { continue }
-      $m = $rejectRegex.Match($raw)
-      if ($m.Success) { $text = $m.Groups[1].Value.Trim() }
+      # ★ 여기서 센다. 프리필터(파싱 전)에서 세면 어시스턴트가 마커 문자열을 인용한 라인까지
+      #   걸려서 거짓 경보가 난다 — 실측으로 이 세션에서 33 대 4 로 오탐이 났다.
+      $sawRejectMarker++
+      $m = $rejectRegexStrict.Match($raw)
+      if ($m.Success) {
+        $text = $m.Groups[1].Value.Trim()
+      } else {
+        $m2 = $rejectRegexLoose.Match($raw)
+        if ($m2.Success) { $text = $m2.Groups[1].Value.Trim(); $rejectLooseCount++ }
+      }
     }
     if (-not $text) { continue }
     $rejectCount++
@@ -229,6 +245,22 @@ if ($turns.Count -eq 0) { Write-Error "사람이 친 발화를 하나도 못 뽑
 if ($sawAskUserQuestion -and $decisions.Count -eq 0) {
   Write-Warning "AskUserQuestion 레코드는 감지됐는데 수집이 0건이다. 마커('$decisionMarker')가 바뀌었을 수 있다."
   Write-Warning "  -> 이 상태에서 '발화에 근거 없음' 판정을 내리지 마라. 선택지 응답이 통째로 안 보이는 중이다."
+}
+
+# 반려 지시에도 같은 방어를 건다. 여긴 fail-loud 가 없어서 AskUserQuestion 쪽과 비대칭이었다.
+# 반려 지시는 이 스킬의 핵심 입력이라(계획을 왜 되돌렸는지가 여기 있다) 유실이 더 비싸다.
+#
+# ⚠ 부분 비교(감지 N > 수집 M)는 쓰지 않는다. 마커는 평범한 영문 문장이라 대화 본문에
+#   인용되면 그대로 걸린다 — 이 스킬 자체를 다루는 세션에서 실측 9 대 4 로 거짓 경보가 났다.
+#   인용된 마커는 뒤에 개행이 없어 strict·loose 둘 다 실패하고 수집에서 알아서 빠지므로,
+#   동작은 정확하고 카운터만 부풀 뿐이다. 그래서 전량 유실만 잡는다(AskUserQuestion 과 같은 기준).
+if ($sawRejectMarker -gt 0 -and $rejectCount -eq 0) {
+  Write-Warning "반려 지시 마커를 $sawRejectMarker 건 봤는데 하나도 못 뽑았다. 래퍼 형식이 바뀌었을 수 있다."
+  Write-Warning "  -> 계획을 되돌린 이유가 통째로 안 보이는 중이다. '요구사항 없음' 판정을 내리지 마라."
+}
+if ($rejectLooseCount -gt 0) {
+  Write-Warning "반려 지시 $rejectLooseCount 건에서 후행 래퍼를 못 찾아 끝까지 캡처했다. 하네스 문구가 사용자 발화로 섞였을 수 있다."
+  Write-Warning "  -> 해당 TURN 의 꼬리에 영문 안내문이 붙어 있는지 눈으로 확인해라."
 }
 
 # --- 3. 출력 --------------------------------------------------------------
