@@ -95,6 +95,8 @@ $skippedSlash = 0
 $rejectCount = 0
 $sawRejectMarker = 0    # 마커를 본 레코드 수 — 수집 수와 벌어지면 파서가 새는 것이다
 $rejectLooseCount = 0   # 후행 래퍼를 못 찾아 끝까지 캡처한 수 — 오염 가능
+$jsonFailUser = 0       # 수집 후보인데 JSON 파싱이 깨진 줄 — 그 발화는 통째로 사라진다
+$jsonFailAssistant = 0  # 어시스턴트 줄 파싱 실패 — 평문 수락의 대상 복원만 영향
 $sawDecisionMarker = 0  # tool_result 안에서 선택지 마커를 본 수 (파싱 후라 라인 기반보다 정확)
 $decisionKept = 0       # 형식 검사를 통과해 수집된 수
 $decisionRejected = 0   # 마커는 있으나 응답 형식이 아니라 버린 수 (인용·로그 오염)
@@ -130,7 +132,7 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
     # 안 자르면 긴 세션에서 파싱 비용이 선형으로 붙는다.
     if ($line.Length -lt 60000) {
       $a = $null
-      try { $a = $line | ConvertFrom-Json } catch { $a = $null }
+      try { $a = $line | ConvertFrom-Json } catch { $a = $null; $jsonFailAssistant++ }
       if ($a -and $a.type -eq 'assistant' -and $a.message.content -and -not $a.isSidechain) {
         $at = ''
         foreach ($ab in $a.message.content) { if ($ab.type -eq 'text') { $at += $ab.text } }
@@ -153,7 +155,8 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
   $isDecision = $line -like "*$decisionMarker*"
   if (-not ($isTyped -or $isReject -or $isDecision)) { continue }
 
-  try { $o = $line | ConvertFrom-Json } catch { continue }
+  # ★ 여기서 실패하면 수집 후보 발화가 통째로 사라진다. 조용히 넘기면 그 유실을 아무도 모른다.
+  try { $o = $line | ConvertFrom-Json } catch { $jsonFailUser++; continue }
   if ($o.type -ne 'user') { continue }
   if ($o.isSidechain) { continue }
 
@@ -267,6 +270,16 @@ if ($decisionLost -gt 0) {
 }
 if ($decisionRejected -gt 0) {
   Write-Warning "선택지 마커 $decisionRejected 건은 응답 형식이 아니라 배제했다(로그·문서에 인용된 마커로 보인다)."
+}
+
+# JSON 파싱 실패. 잘린 마지막 줄·손상 레코드·PS5.1 이 못 먹는 형태에서 난다.
+# 프리필터를 통과한 줄만 파싱하므로 여기서 깨진 건 전부 "수집 후보였던 발화"다.
+if ($jsonFailUser -gt 0) {
+  Write-Warning "수집 후보 $jsonFailUser 줄이 JSON 파싱에 실패해 통째로 빠졌다."
+  Write-Warning "  -> 기준선에 구멍이 있다. '요구사항 없음'·'근거 없음' 판정을 내리지 마라."
+}
+if ($jsonFailAssistant -gt 0) {
+  Write-Warning "어시스턴트 $jsonFailAssistant 줄이 파싱에 실패했다. 그 구간의 평문 수락은 대상 복원이 안 된다."
 }
 
 # 반려 지시에도 같은 방어를 건다. 여긴 fail-loud 가 없어서 AskUserQuestion 쪽과 비대칭이었다.
