@@ -61,6 +61,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "<스크립트경로>" -Engi
 powershell -NoProfile -ExecutionPolicy Bypass -File "<스크립트경로>" -Engine cursor -TranscriptPath "<cursor-jsonl>"
 ```
 - `auto` — `CLAUDE_CODE_SESSION_ID` 있으면 claude; 아니면 Cursor `agent-transcripts` 유무·경로로 cursor/claude 선택
+- **Cursor 채팅/에이전트 세션에서는 `-Engine cursor`를 명시하라.** `auto`는 같은 셸에 `CLAUDE_CODE_SESSION_ID`가 남아 있으면 claude로 잘못 분기할 수 있다.
 - `claude` — `~/.claude/projects` jsonl · `promptSource=typed` 경로
 - `cursor` — `~/.cursor/projects/*/agent-transcripts/*/*.jsonl` · `<user_query>` 추출 (`promptSource` 불필요)
 
