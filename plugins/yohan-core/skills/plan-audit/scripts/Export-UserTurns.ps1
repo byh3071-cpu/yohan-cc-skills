@@ -197,24 +197,34 @@ foreach ($line in [IO.File]::ReadLines($TranscriptPath, [Text.Encoding]::UTF8)) 
 
   } elseif ($isReject) {
     # (2) 반려 지시 — tool_result 안에 래퍼로 묻혀 있다.
+    #     ★ 한 레코드에 tool_result 가 여럿일 수 있고, 한 raw 안에 래퍼가 여럿일 수도 있다.
+    #       예전엔 $text 를 덮어쓰고 레코드당 한 번만 담아서 나머지가 조용히 사라졌다.
+    #       여기서 바로 담고 분기를 끝낸다.
     if (-not $c -or ($c -is [string])) { continue }
+    $ts = Get-ShortTs $o.timestamp
     foreach ($b in $c) {
       if ($b.type -ne 'tool_result') { continue }
       $raw = if ($b.content -is [string]) { $b.content } else { ($b.content | Out-String) }
       if ($raw -notlike "*$rejectMarker*") { continue }
       # ★ 여기서 센다. 프리필터(파싱 전)에서 세면 어시스턴트가 마커 문자열을 인용한 라인까지
       #   걸려서 거짓 경보가 난다 — 실측으로 이 세션에서 33 대 4 로 오탐이 났다.
-      $sawRejectMarker++
-      $m = $rejectRegexStrict.Match($raw)
-      if ($m.Success) {
-        $text = $m.Groups[1].Value.Trim()
+      $sawRejectMarker += [regex]::Matches($raw, [regex]::Escape($rejectMarker)).Count
+
+      $ms = $rejectRegexStrict.Matches($raw)
+      if ($ms.Count -gt 0) {
+        foreach ($mm in $ms) {
+          $t = $mm.Groups[1].Value.Trim()
+          if ($t) { [void]$turns.Add([pscustomobject]@{ Text = $t; Ts = $ts }); $rejectCount++ }
+        }
       } else {
         $m2 = $rejectRegexLoose.Match($raw)
-        if ($m2.Success) { $text = $m2.Groups[1].Value.Trim(); $rejectLooseCount++ }
+        if ($m2.Success) {
+          $t = $m2.Groups[1].Value.Trim()
+          if ($t) { [void]$turns.Add([pscustomobject]@{ Text = $t; Ts = $ts }); $rejectCount++; $rejectLooseCount++ }
+        }
       }
     }
-    if (-not $text) { continue }
-    $rejectCount++
+    continue
 
   } else {
     # (3) 선택지 응답 — AskUserQuestion. decisions 로만 빠지고 turns 에는 절대 안 들어간다.
